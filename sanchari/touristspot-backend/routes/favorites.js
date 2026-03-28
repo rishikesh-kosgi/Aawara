@@ -1,13 +1,13 @@
 const express = require('express');
-const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../database');
 const { authMiddleware } = require('../middleware/auth');
 
-// GET /api/favorites
-router.get('/', authMiddleware, (req, res) => {
+const router = express.Router();
+
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const spots = db.prepare(`
+    const spots = await db.prepare(`
       SELECT s.*,
         (SELECT COUNT(*) FROM photos WHERE spot_id = s.id AND status = 'approved') as photo_count,
         (SELECT filename FROM photos WHERE spot_id = s.id AND status = 'approved'
@@ -19,42 +19,41 @@ router.get('/', authMiddleware, (req, res) => {
       ORDER BY f.created_at DESC
     `).all(req.user.id);
 
-    res.json({ success: true, spots: spots.map(s => ({ ...s, is_favorite: true })) });
-  } catch (err) {
+    res.json({ success: true, spots: spots.map(spot => ({ ...spot, is_favorite: true })) });
+  } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch favorites' });
   }
 });
 
-// POST /api/favorites/:spotId
-router.post('/:spotId', authMiddleware, (req, res) => {
+router.post('/:spotId', authMiddleware, async (req, res) => {
   try {
-    const spot = db.prepare('SELECT id FROM spots WHERE id = ?').get(req.params.spotId);
+    const spot = await db.prepare('SELECT id FROM spots WHERE id = ?').get(req.params.spotId);
     if (!spot) return res.status(404).json({ success: false, message: 'Spot not found' });
 
-    const exists = db.prepare('SELECT id FROM favorites WHERE user_id = ? AND spot_id = ?')
+    const exists = await db.prepare('SELECT id FROM favorites WHERE user_id = ? AND spot_id = ?')
       .get(req.user.id, req.params.spotId);
     if (exists) return res.status(400).json({ success: false, message: 'Already in favorites' });
 
-    db.prepare('INSERT INTO favorites (id, user_id, spot_id) VALUES (?, ?, ?)')
+    await db.prepare('INSERT INTO favorites (id, user_id, spot_id) VALUES (?, ?, ?)')
       .run(uuidv4(), req.user.id, req.params.spotId);
 
     res.status(201).json({ success: true, message: 'Added to favorites' });
-  } catch (err) {
+  } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to add favorite' });
   }
 });
 
-// DELETE /api/favorites/:spotId
-router.delete('/:spotId', authMiddleware, (req, res) => {
+router.delete('/:spotId', authMiddleware, async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM favorites WHERE user_id = ? AND spot_id = ?')
+    const result = await db.prepare('DELETE FROM favorites WHERE user_id = ? AND spot_id = ?')
       .run(req.user.id, req.params.spotId);
 
     if (result.changes === 0) {
       return res.status(404).json({ success: false, message: 'Not in favorites' });
     }
+
     res.json({ success: true, message: 'Removed from favorites' });
-  } catch (err) {
+  } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to remove favorite' });
   }
 });

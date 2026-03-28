@@ -3,7 +3,7 @@
  * Usage: node add-india-spots.js
  */
 
-const { db } = require('./database');
+const { db, initializeDatabase, pool } = require('./database');
 const { v4: uuidv4 } = require('uuid');
 
 const spots = [
@@ -313,7 +313,8 @@ const spots = [
   ['Sanjeevini Circle Mysore', 'Test location for photo validation - Lokanayakanagar, Mysore.', 'General', 'Mysuru', 'India', 12.3200, 76.6100, '9th Cross, Lokanayakanagar, Sanjeevini Circle, Mysuru 570016', 0],
 ];
 
-function seedAllSpots() {
+async function seedAllSpots() {
+  await initializeDatabase({ syncSeeds: false });
   let added = 0;
   let skipped = 0;
 
@@ -321,14 +322,14 @@ function seedAllSpots() {
     const [name, description, category, city, country, latitude, longitude, address, is_remote] = spot;
 
     // Check if spot already exists
-    const existing = db.prepare('SELECT id FROM spots WHERE name = ? AND city = ?').get(name, city);
+    const existing = await db.prepare('SELECT id FROM spots WHERE name = ? AND city = ?').get(name, city);
     if (existing) {
       skipped++;
       continue;
     }
 
     const id = 'spot_' + uuidv4();
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO spots (id, name, description, category, city, country, latitude, longitude, address, is_remote, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
     `).run(id, name, description, category, city, country, latitude, longitude, address, is_remote);
@@ -337,8 +338,14 @@ function seedAllSpots() {
   }
 
   console.log(`\n🎉 Done! Added ${added} spots, skipped ${skipped} duplicates.`);
-  console.log(`📊 Total spots: ${db.prepare('SELECT COUNT(*) as c FROM spots').get().c}`);
+  console.log(`📊 Total spots: ${(await db.prepare('SELECT COUNT(*) as c FROM spots').get()).c}`);
 }
 
-seedAllSpots();
-process.exit(0);
+seedAllSpots()
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await pool.end();
+  });

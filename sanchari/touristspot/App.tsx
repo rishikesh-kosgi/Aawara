@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,6 +22,17 @@ import LoadingVideoScreen from './src/components/LoadingVideoScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef();
+
+function extractInviteCode(url) {
+  if (!url) return null;
+
+  const match =
+    String(url).match(/^touristspot:\/\/groups\/join\/([A-Z0-9_-]+)$/i) ||
+    String(url).match(/[?&]inviteCode=([A-Z0-9_-]+)/i);
+
+  return match?.[1] ? match[1].toUpperCase() : null;
+}
 
 function MainTabs() {
   return (
@@ -79,6 +90,35 @@ function MainTabs() {
 function AppShell() {
   const { isLoggedIn, loading } = useAuth();
   const [showLoadingVideo, setShowLoadingVideo] = useState(true);
+  const [pendingInviteCode, setPendingInviteCode] = useState(null);
+  const [navigationReady, setNavigationReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    Linking.getInitialURL().then(url => {
+      if (!active) return;
+      const inviteCode = extractInviteCode(url);
+      if (inviteCode) setPendingInviteCode(inviteCode);
+    }).catch(() => {});
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      const inviteCode = extractInviteCode(url);
+      if (inviteCode) setPendingInviteCode(inviteCode);
+    });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || !pendingInviteCode || !navigationReady || !navigationRef.isReady()) return;
+
+    navigationRef.navigate('Groups', { inviteCode: pendingInviteCode });
+    setPendingInviteCode(null);
+  }, [isLoggedIn, navigationReady, pendingInviteCode]);
 
   if (showLoadingVideo) {
     return <LoadingVideoScreen onFinish={() => setShowLoadingVideo(false)} />;
@@ -93,7 +133,10 @@ function AppShell() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => setNavigationReady(true)}
+    >
       {isLoggedIn ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />

@@ -7,7 +7,7 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { db } = require('./database');
+const { db, initializeDatabase, pool } = require('./database');
 const { v4: uuidv4 } = require('uuid');
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -238,7 +238,8 @@ function sleep(ms) {
 }
 
 async function main() {
-  const spots = db.prepare('SELECT * FROM spots WHERE status = ?').all('approved');
+  await initializeDatabase({ syncSeeds: false });
+  const spots = await db.prepare('SELECT * FROM spots WHERE status = ?').all('approved');
   console.log(`\n📸 Processing ${spots.length} spots...\n`);
 
   let downloaded = 0;
@@ -247,7 +248,7 @@ async function main() {
 
   for (const spot of spots) {
     // Check if already has a photo
-    const existingPhoto = db.prepare(
+    const existingPhoto = await db.prepare(
       'SELECT id, filename FROM photos WHERE spot_id = ? AND status = ? LIMIT 1'
     ).get(spot.id, 'approved');
 
@@ -273,11 +274,11 @@ async function main() {
 
       // Remove existing failed photo record if any
       if (existingPhoto) {
-        db.prepare('DELETE FROM photos WHERE id = ?').run(existingPhoto.id);
+        await db.prepare('DELETE FROM photos WHERE id = ?').run(existingPhoto.id);
       }
 
       // Add photo to database
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO photos (id, spot_id, user_id, filename, status, uploaded_at)
         VALUES (?, ?, 'system', ?, 'approved', ?)
       `).run(uuidv4(), spot.id, filename, Date.now());
@@ -292,8 +293,11 @@ async function main() {
         if (fallbackUrl && fallbackUrl !== spotImages[spot.name]) {
           const filename = `spot_img_${spot.id}.jpg`;
           await downloadImage(fallbackUrl, filename);
-          db.prepare(`
-            INSERT OR REPLACE INTO photos (id, spot_id, user_id, filename, status, uploaded_at)
+          if (existingPhoto) {
+            await db.prepare('DELETE FROM photos WHERE id = ?').run(existingPhoto.id);
+          }
+          await db.prepare(`
+            INSERT INTO photos (id, spot_id, user_id, filename, status, uploaded_at)
             VALUES (?, ?, 'system', ?, 'approved', ?)
           `).run(uuidv4(), spot.id, filename, Date.now());
           downloaded++;
@@ -309,8 +313,14 @@ async function main() {
   console.log(`✅ Downloaded: ${downloaded}`);
   console.log(`⏭️  Skipped (already had): ${skipped}`);
   console.log(`❌ Failed: ${failed}`);
-  console.log(`📊 Total photos: ${db.prepare('SELECT COUNT(*) as c FROM photos WHERE status = ?').get('approved').c}`);
-  process.exit(0);
+  console.log(`📊 Total photos: ${(await db.prepare('SELECT COUNT(*) as c FROM photos WHERE status = ?').get('approved')).c}`);
 }
 
-main();
+main()
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await pool.end();
+  });

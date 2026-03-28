@@ -27,6 +27,7 @@ const CATEGORIES = [
   { key: 'Landmark', emoji: '🗼' },
   { key: 'Temple', emoji: '🛕' },
   { key: 'Nature', emoji: '🌿' },
+  { key: 'Trekking', emoji: '🥾' },
   { key: 'Beach', emoji: '🏖️' },
   { key: 'Historical', emoji: '🏛️' },
   { key: 'General', emoji: '📍' },
@@ -36,6 +37,7 @@ const CATEGORY_COLORS = {
   Landmark: '#e94560',
   Historical: '#f39c12',
   Nature: '#27ae60',
+  Trekking: '#d97706',
   Beach: '#3498db',
   General: '#9b59b6',
   Temple: '#e67e22',
@@ -44,6 +46,7 @@ const CATEGORY_COLORS = {
 function getCategoryEmoji(category) {
   if (category === 'Beach') return '🏖️';
   if (category === 'Nature') return '🌿';
+  if (category === 'Trekking') return '🥾';
   if (category === 'Historical') return '🏛️';
   if (category === 'Landmark') return '🗼';
   if (category === 'Temple') return '🛕';

@@ -139,6 +139,7 @@ async function searchWikimediaImage(query) {
 const fallbackImages = {
   Temple: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Golden_Temple%2C_Amritsar%2C_India_-_Aug_2019.jpg/1200px-Golden_Temple%2C_Amritsar%2C_India_-_Aug_2019.jpg',
   Nature: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Athirappilly_Waterfalls.jpg/1200px-Athirappilly_Waterfalls.jpg',
+  Trekking: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Indian_Himalayas%2C_Ladakh.jpg/1200px-Indian_Himalayas%2C_Ladakh.jpg',
   Beach: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Calangute_beach_Goa.jpg/1200px-Calangute_beach_Goa.jpg',
   Historical: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1200px-Taj_Mahal_%28Edited%29.jpeg',
   Landmark: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1200px-Taj_Mahal_%28Edited%29.jpeg',
@@ -148,6 +149,7 @@ const fallbackImages = {
 const placeholderTheme = {
   Temple: { start: '#d97706', end: '#f59e0b', icon: 'Temple' },
   Nature: { start: '#166534', end: '#22c55e', icon: 'Nature' },
+  Trekking: { start: '#92400e', end: '#f59e0b', icon: 'Trek' },
   Beach: { start: '#0369a1', end: '#38bdf8', icon: 'Beach' },
   Historical: { start: '#7c2d12', end: '#f97316', icon: 'Historic' },
   Landmark: { start: '#7f1d1d', end: '#ef4444', icon: 'Landmark' },

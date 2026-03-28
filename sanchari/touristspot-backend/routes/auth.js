@@ -46,22 +46,22 @@ router.post('/google', async (req, res) => {
     const displayName = googleUser.name || googleUser.given_name || email.split('@')[0];
     const avatarUrl = googleUser.picture || null;
 
-    let user = db.prepare('SELECT * FROM users WHERE google_id = ? OR email = ?').get(googleId, email);
+    let user = await db.prepare('SELECT * FROM users WHERE google_id = ? OR email = ?').get(googleId, email);
 
     if (user) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE users
         SET email = ?, google_id = ?, avatar_url = ?, auth_provider = 'google', name = COALESCE(NULLIF(name, ''), ?)
         WHERE id = ?
       `).run(email, googleId, avatarUrl, displayName, user.id);
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
+      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
     } else {
       const userId = uuidv4();
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO users (id, phone, name, email, google_id, avatar_url, auth_provider)
         VALUES (?, ?, ?, ?, ?, ?, 'google')
       `).run(userId, fallbackPhone, displayName, email, googleId, avatarUrl);
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -88,13 +88,17 @@ router.post('/google', async (req, res) => {
 });
 
 // PUT /api/auth/profile
-router.put('/profile', authMiddleware, (req, res) => {
-  const { name } = req.body;
-  if (!name || name.trim().length < 2) {
-    return res.status(400).json({ success: false, message: 'Name must be at least 2 characters' });
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ success: false, message: 'Name must be at least 2 characters' });
+    }
+    await db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name.trim(), req.user.id);
+    res.json({ success: true, message: 'Profile updated' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
-  db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name.trim(), req.user.id);
-  res.json({ success: true, message: 'Profile updated' });
 });
 
 // GET /api/auth/me
@@ -103,9 +107,9 @@ router.get('/me', authMiddleware, (req, res) => {
 });
 
 // GET /api/auth/leaderboard
-router.get('/leaderboard', authMiddleware, (req, res) => {
+router.get('/leaderboard', authMiddleware, async (req, res) => {
   try {
-    const users = db.prepare(`
+    const users = await db.prepare(`
       SELECT
         id,
         name,

@@ -14,7 +14,7 @@ function createInviteCode() {
   return code;
 }
 
-function getMembership(groupId, userId) {
+async function getMembership(groupId, userId) {
   return db.prepare(`
     SELECT *
     FROM trip_group_members
@@ -22,19 +22,20 @@ function getMembership(groupId, userId) {
   `).get(groupId, userId);
 }
 
-function attachGroupSummary(group, userId) {
+async function attachGroupSummary(group, userId) {
   if (!group) return null;
-  const members = db.prepare(`
+
+  const members = await db.prepare(`
     SELECT COUNT(*) as c
     FROM trip_group_members
     WHERE group_id = ?
   `).get(group.id);
-  const suggestions = db.prepare(`
+  const suggestions = await db.prepare(`
     SELECT COUNT(*) as c
     FROM trip_group_spot_suggestions
     WHERE group_id = ?
   `).get(group.id);
-  const accepted = db.prepare(`
+  const accepted = await db.prepare(`
     SELECT COUNT(*) as c
     FROM trip_group_spot_votes v
     JOIN trip_group_spot_suggestions s ON s.id = v.suggestion_id
@@ -43,30 +44,31 @@ function attachGroupSummary(group, userId) {
 
   return {
     ...group,
-    member_count: members.c,
-    suggestion_count: suggestions.c,
-    accepted_count: accepted.c,
+    member_count: members?.c || 0,
+    suggestion_count: suggestions?.c || 0,
+    accepted_count: accepted?.c || 0,
   };
 }
 
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const groups = db.prepare(`
+    const groups = await db.prepare(`
       SELECT g.*
       FROM trip_groups g
       JOIN trip_group_members gm ON gm.group_id = g.id
       WHERE gm.user_id = ?
       ORDER BY g.created_at DESC
-    `).all(req.user.id).map(group => attachGroupSummary(group, req.user.id));
+    `).all(req.user.id);
 
-    res.json({ success: true, groups });
+    const withSummary = await Promise.all(groups.map(group => attachGroupSummary(group, req.user.id)));
+    res.json({ success: true, groups: withSummary });
   } catch (error) {
     console.error('Group list error:', error);
     res.status(500).json({ success: false, message: 'Failed to load groups' });
   }
 });
 
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const name = String(req.body?.name || '').trim();
     if (name.length < 3) {
@@ -75,68 +77,69 @@ router.post('/', authMiddleware, (req, res) => {
 
     const groupId = uuidv4();
     let inviteCode = createInviteCode();
-    while (db.prepare('SELECT id FROM trip_groups WHERE invite_code = ?').get(inviteCode)) {
+    while (await db.prepare('SELECT id FROM trip_groups WHERE invite_code = ?').get(inviteCode)) {
       inviteCode = createInviteCode();
     }
 
-    db.prepare(`
+    const now = Math.floor(Date.now() / 1000);
+    await db.prepare(`
       INSERT INTO trip_groups (id, name, invite_code, created_by, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(groupId, name, inviteCode, req.user.id, Math.floor(Date.now() / 1000));
+    `).run(groupId, name, inviteCode, req.user.id, now);
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO trip_group_members (id, group_id, user_id, role, joined_at)
       VALUES (?, ?, ?, 'owner', ?)
-    `).run(uuidv4(), groupId, req.user.id, Math.floor(Date.now() / 1000));
+    `).run(uuidv4(), groupId, req.user.id, now);
 
-    const group = db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(groupId);
-    res.status(201).json({ success: true, group: attachGroupSummary(group, req.user.id) });
+    const group = await db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(groupId);
+    res.status(201).json({ success: true, group: await attachGroupSummary(group, req.user.id) });
   } catch (error) {
     console.error('Create group error:', error);
     res.status(500).json({ success: false, message: 'Failed to create group' });
   }
 });
 
-router.post('/join', authMiddleware, (req, res) => {
+router.post('/join', authMiddleware, async (req, res) => {
   try {
     const inviteCode = String(req.body?.invite_code || '').trim().toUpperCase();
     if (!inviteCode) {
       return res.status(400).json({ success: false, message: 'Invite code required' });
     }
 
-    const group = db.prepare('SELECT * FROM trip_groups WHERE invite_code = ?').get(inviteCode);
+    const group = await db.prepare('SELECT * FROM trip_groups WHERE invite_code = ?').get(inviteCode);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    const existing = getMembership(group.id, req.user.id);
+    const existing = await getMembership(group.id, req.user.id);
     if (!existing) {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO trip_group_members (id, group_id, user_id, role, joined_at)
         VALUES (?, ?, ?, 'member', ?)
       `).run(uuidv4(), group.id, req.user.id, Math.floor(Date.now() / 1000));
     }
 
-    res.json({ success: true, group: attachGroupSummary(group, req.user.id) });
+    res.json({ success: true, group: await attachGroupSummary(group, req.user.id) });
   } catch (error) {
     console.error('Join group error:', error);
     res.status(500).json({ success: false, message: 'Failed to join group' });
   }
 });
 
-router.get('/:groupId', authMiddleware, (req, res) => {
+router.get('/:groupId', authMiddleware, async (req, res) => {
   try {
-    const group = db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(req.params.groupId);
+    const group = await db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(req.params.groupId);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    const membership = getMembership(group.id, req.user.id);
+    const membership = await getMembership(group.id, req.user.id);
     if (!membership) {
       return res.status(403).json({ success: false, message: 'You are not a member of this group' });
     }
 
-    const members = db.prepare(`
+    const members = await db.prepare(`
       SELECT u.id, u.name, u.email, u.avatar_url, gm.role, u.points
       FROM trip_group_members gm
       JOIN users u ON u.id = gm.user_id
@@ -144,7 +147,7 @@ router.get('/:groupId', authMiddleware, (req, res) => {
       ORDER BY gm.role = 'owner' DESC, u.name ASC
     `).all(group.id);
 
-    const suggestions = db.prepare(`
+    const suggestions = await db.prepare(`
       SELECT
         s.id,
         s.group_id,
@@ -168,13 +171,13 @@ router.get('/:groupId', authMiddleware, (req, res) => {
       JOIN users u ON u.id = s.suggested_by
       LEFT JOIN trip_group_spot_votes v ON v.suggestion_id = s.id
       WHERE s.group_id = ?
-      GROUP BY s.id
+      GROUP BY s.id, sp.id, u.id
       ORDER BY yes_votes DESC, no_votes ASC, s.created_at ASC
     `).all(req.user.id, req.user.id, req.user.id, group.id);
 
     res.json({
       success: true,
-      group: attachGroupSummary(group, req.user.id),
+      group: await attachGroupSummary(group, req.user.id),
       membership,
       members,
       suggestions,
@@ -185,20 +188,20 @@ router.get('/:groupId', authMiddleware, (req, res) => {
   }
 });
 
-router.post('/:groupId/suggestions', authMiddleware, (req, res) => {
+router.post('/:groupId/suggestions', authMiddleware, async (req, res) => {
   try {
-    const group = db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(req.params.groupId);
+    const group = await db.prepare('SELECT * FROM trip_groups WHERE id = ?').get(req.params.groupId);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Group not found' });
     }
 
-    const membership = getMembership(group.id, req.user.id);
+    const membership = await getMembership(group.id, req.user.id);
     if (!membership) {
       return res.status(403).json({ success: false, message: 'You are not a member of this group' });
     }
 
     const spotId = String(req.body?.spot_id || '').trim();
-    const spot = db.prepare(`
+    const spot = await db.prepare(`
       SELECT id, name
       FROM spots
       WHERE id = ? AND status = 'approved'
@@ -207,7 +210,7 @@ router.post('/:groupId/suggestions', authMiddleware, (req, res) => {
       return res.status(404).json({ success: false, message: 'Spot not found' });
     }
 
-    const existing = db.prepare(`
+    const existing = await db.prepare(`
       SELECT id
       FROM trip_group_spot_suggestions
       WHERE group_id = ? AND spot_id = ?
@@ -216,11 +219,10 @@ router.post('/:groupId/suggestions', authMiddleware, (req, res) => {
       return res.status(400).json({ success: false, message: 'Spot already suggested in this group' });
     }
 
-    const suggestionId = uuidv4();
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO trip_group_spot_suggestions (id, group_id, spot_id, suggested_by, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(suggestionId, group.id, spot.id, req.user.id, Math.floor(Date.now() / 1000));
+    `).run(uuidv4(), group.id, spot.id, req.user.id, Math.floor(Date.now() / 1000));
 
     res.status(201).json({ success: true, message: `${spot.name} added to the group plan` });
   } catch (error) {
@@ -229,19 +231,19 @@ router.post('/:groupId/suggestions', authMiddleware, (req, res) => {
   }
 });
 
-router.post('/:groupId/suggestions/:suggestionId/vote', authMiddleware, (req, res) => {
+router.post('/:groupId/suggestions/:suggestionId/vote', authMiddleware, async (req, res) => {
   try {
     const vote = req.body?.vote === 'yes' ? 'yes' : req.body?.vote === 'no' ? 'no' : null;
     if (!vote) {
       return res.status(400).json({ success: false, message: 'Vote must be yes or no' });
     }
 
-    const membership = getMembership(req.params.groupId, req.user.id);
+    const membership = await getMembership(req.params.groupId, req.user.id);
     if (!membership) {
       return res.status(403).json({ success: false, message: 'You are not a member of this group' });
     }
 
-    const suggestion = db.prepare(`
+    const suggestion = await db.prepare(`
       SELECT *
       FROM trip_group_spot_suggestions
       WHERE id = ? AND group_id = ?
@@ -250,20 +252,20 @@ router.post('/:groupId/suggestions/:suggestionId/vote', authMiddleware, (req, re
       return res.status(404).json({ success: false, message: 'Suggestion not found' });
     }
 
-    const existing = db.prepare(`
+    const existing = await db.prepare(`
       SELECT id
       FROM trip_group_spot_votes
       WHERE suggestion_id = ? AND user_id = ?
     `).get(suggestion.id, req.user.id);
 
     if (existing) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE trip_group_spot_votes
         SET vote = ?, created_at = ?
         WHERE id = ?
       `).run(vote, Math.floor(Date.now() / 1000), existing.id);
     } else {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO trip_group_spot_votes (id, suggestion_id, user_id, vote, created_at)
         VALUES (?, ?, ?, ?, ?)
       `).run(uuidv4(), suggestion.id, req.user.id, vote, Math.floor(Date.now() / 1000));

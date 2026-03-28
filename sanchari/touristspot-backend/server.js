@@ -17,8 +17,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   immutable: true,
 }));
 
-initializeDatabase();
-
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/spots', require('./routes/spots'));
 app.use('/api/photos', require('./routes/photos'));
@@ -39,8 +37,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`Server running on http://${HOST}:${PORT}`);
-});
+async function startServer() {
+  try {
+    await initializeDatabase();
+    app.listen(PORT, HOST, () => {
+      console.log(`Server running on http://${HOST}:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to initialize backend:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 module.exports = app;

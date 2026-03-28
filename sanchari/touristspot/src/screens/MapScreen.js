@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { spotsAPI } from '../api';
 import { colors, radius, shadow, spacing } from '../theme';
@@ -18,16 +17,21 @@ const CATEGORY_COLORS = {
   Nature: '#10B981',
   Beach: '#0EA5E9',
   Temple: '#7C3AED',
+  Trekking: '#D97706',
   General: '#64748B',
 };
 
-const CATEGORIES = ['All', 'Landmark', 'Historical', 'Nature', 'Beach', 'Temple', 'General'];
+const CATEGORY_ORDER = ['All', 'Landmark', 'Historical', 'Nature', 'Beach', 'Temple', 'Trekking', 'General'];
+const COUNTRY_OPTIONS = [
+  { key: 'India', label: 'India' },
+  { key: 'United States', label: 'USA' },
+  { key: 'ALL_COUNTRIES', label: 'World' },
+];
 
-const INDIA_REGION = {
-  latitude: 22.5,
-  longitude: 79.5,
-  latitudeDelta: 13.5,
-  longitudeDelta: 13.5,
+const DEFAULT_VIEWS = {
+  India: { center: [22.5, 79.5], zoom: 5 },
+  'United States': { center: [39.8283, -98.5795], zoom: 4 },
+  ALL_COUNTRIES: { center: [20, 0], zoom: 2 },
 };
 
 function toNumber(value) {
@@ -43,17 +47,190 @@ function normalizeSpot(spot) {
   return { ...spot, latitude, longitude };
 }
 
+function buildMapHtml(spots, selectedCountry) {
+  const defaultView = DEFAULT_VIEWS[selectedCountry] || DEFAULT_VIEWS.ALL_COUNTRIES;
+  const payload = spots.map(spot => ({
+    id: spot.id,
+    name: spot.name,
+    city: spot.city,
+    country: spot.country,
+    category: spot.category,
+    latitude: spot.latitude,
+    longitude: spot.longitude,
+    isVisited: Boolean(spot.is_visited),
+    color: spot.is_visited ? colors.success : (CATEGORY_COLORS[spot.category] || colors.primary),
+  }));
+
+  return `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      html, body, #map {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        background: #dbeafe;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      .leaflet-container {
+        background: #dbeafe;
+      }
+      #status {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        z-index: 999;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.86);
+        color: white;
+        font-size: 13px;
+        line-height: 1.4;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="status"></div>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      const spots = ${JSON.stringify(payload)};
+      const defaultView = ${JSON.stringify(defaultView)};
+      const statusEl = document.getElementById('status');
+      let map;
+      let bounds;
+
+      function showStatus(message) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = message;
+      }
+
+      function clearStatus() {
+        statusEl.style.display = 'none';
+        statusEl.textContent = '';
+      }
+
+      function post(payload) {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+        }
+      }
+
+      function makeMarker(spot) {
+        const marker = L.circleMarker([spot.latitude, spot.longitude], {
+          radius: spot.isVisited ? 9 : 7,
+          color: spot.color,
+          fillColor: spot.color,
+          fillOpacity: 0.9,
+          weight: 2,
+        });
+
+        marker.bindPopup(
+          '<div style="min-width:180px">' +
+            '<strong>' + spot.name + '</strong><br />' +
+            spot.city + ', ' + spot.country + '<br />' +
+            spot.category + (spot.isVisited ? ' • Visited' : '') +
+            '<br /><button style="margin-top:8px;padding:6px 10px;border:none;border-radius:8px;background:#0f766e;color:#fff;" onclick="window.__openSpot(' + spot.id + ', ' + JSON.stringify(spot.name) + ')">Open Spot</button>' +
+          '</div>'
+        );
+
+        marker.on('click', function() {
+          post({ type: 'marker_press', spotId: spot.id, spotName: spot.name });
+        });
+
+        bounds.push([spot.latitude, spot.longitude]);
+        return marker;
+      }
+
+      window.__openSpot = function(id, name) {
+        post({ type: 'marker_press', spotId: id, spotName: name });
+      };
+
+      function resetMapView() {
+        if (!map) return;
+        if (bounds.length) {
+          map.fitBounds(bounds, { padding: [36, 36] });
+        } else {
+          map.setView(defaultView.center, defaultView.zoom);
+        }
+      }
+
+      function changeMapZoom(delta) {
+        if (!map) return;
+        map.setZoom((map.getZoom() || defaultView.zoom) + delta);
+      }
+
+      window.resetMapView = resetMapView;
+      window.changeMapZoom = changeMapZoom;
+
+      function boot() {
+        if (!window.L) {
+          showStatus('Map library failed to load. Check your internet connection and reopen this screen.');
+          post({ type: 'map_error', message: 'Leaflet failed to load' });
+          return;
+        }
+
+        map = L.map('map', {
+          zoomControl: false,
+          preferCanvas: true,
+        }).setView(defaultView.center, defaultView.zoom);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
+
+        bounds = [];
+        spots.forEach(spot => makeMarker(spot).addTo(map));
+
+        if (bounds.length) {
+          clearStatus();
+          map.fitBounds(bounds, { padding: [36, 36] });
+        } else {
+          showStatus('No spots match the current filters. Try All Spots or another category.');
+        }
+      }
+
+      window.addEventListener('load', boot);
+    </script>
+  </body>
+</html>`;
+}
+
 export default function MapScreen({ navigation }) {
-  const mapRef = useRef(null);
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [viewMode, setViewMode] = useState('all');
+  const [selectedCountry, setSelectedCountry] = useState('India');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const loadIndiaSpots = useCallback(async () => {
+  const loadMapSpots = useCallback(async () => {
     try {
       setLoading(true);
       const [spotsRes, visitedRes] = await Promise.allSettled([
-        spotsAPI.getSpots({ limit: 1000, country: 'India' }),
+        spotsAPI.getSpots({ limit: 5000 }),
         spotsAPI.getVisited(),
       ]);
 
@@ -76,9 +253,6 @@ export default function MapScreen({ navigation }) {
         }));
 
       setSpots(validSpots);
-      requestAnimationFrame(() => {
-        mapRef.current?.animateToRegion(INDIA_REGION, 500);
-      });
     } catch (error) {
       console.error('Map spots error:', error);
     } finally {
@@ -86,35 +260,59 @@ export default function MapScreen({ navigation }) {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadIndiaSpots();
-    }, [loadIndiaSpots])
-  );
+  useEffect(() => {
+    loadMapSpots();
+  }, [loadMapSpots]);
 
-  function goToIndia() {
-    mapRef.current?.animateToRegion(INDIA_REGION, 700);
-  }
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', loadMapSpots);
+    return unsubscribe;
+  }, [loadMapSpots, navigation]);
 
-  function changeZoom(delta) {
-    mapRef.current?.getCamera().then(camera => {
-      const nextZoom = Math.min(18, Math.max(3, (camera.zoom || 5) + delta));
-      mapRef.current?.animateCamera({ ...camera, zoom: nextZoom }, { duration: 250 });
-    }).catch(() => {});
-  }
+  const categories = useMemo(() => {
+    const fromData = Array.from(new Set(spots.map(spot => spot.category).filter(Boolean)));
+    const ordered = CATEGORY_ORDER.filter(category => category === 'All' || fromData.includes(category));
+    const extras = fromData.filter(category => !CATEGORY_ORDER.includes(category)).sort((a, b) => a.localeCompare(b));
+    return [...ordered, ...extras];
+  }, [spots]);
 
   const filteredSpots = useMemo(() => {
-    const source = selectedCategory === 'All' ? spots : spots.filter(spot => spot.category === selectedCategory);
+    let source = viewMode === 'visited' ? spots.filter(spot => spot.is_visited) : spots;
+    if (selectedCountry !== 'ALL_COUNTRIES') {
+      source = source.filter(spot => spot.country === selectedCountry);
+    }
+    if (selectedCategory !== 'All') {
+      source = source.filter(spot => spot.category === selectedCategory);
+    }
     return [...source].sort((a, b) => Number(b.is_visited) - Number(a.is_visited) || a.name.localeCompare(b.name));
-  }, [selectedCategory, spots]);
+  }, [selectedCategory, selectedCountry, spots, viewMode]);
 
   const visitedCount = useMemo(() => spots.filter(spot => spot.is_visited).length, [spots]);
+  const mapHtml = useMemo(() => buildMapHtml(filteredSpots, selectedCountry), [filteredSpots, selectedCountry]);
+  const activeFilterLabel = selectedCategory === 'All' ? 'Filter' : selectedCategory;
+
+  function handleMapMessage(event) {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'marker_press' && data.spotId) {
+        navigation.navigate('SpotDetail', {
+          spotId: data.spotId,
+          spotName: data.spotName,
+        });
+      }
+      if (data.type === 'map_error') {
+        console.warn('Map webview error:', data.message);
+      }
+    } catch (error) {
+      console.warn('Map message parse error:', error);
+    }
+  }
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading India map...</Text>
+        <Text style={styles.loadingText}>Loading world map...</Text>
       </View>
     );
   }
@@ -123,84 +321,115 @@ export default function MapScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>India Spot Map</Text>
-          <Text style={styles.headerSub}>{filteredSpots.length} spots</Text>
-        </View>
-        <View style={styles.visitSummary}>
-          <MaterialCommunityIcons name="check-decagram" size={18} color={colors.success} />
-          <Text style={styles.visitSummaryText}>{visitedCount} visited</Text>
+          <Text style={styles.headerTitle}>Aawara</Text>
+          <Text style={styles.headerSub}>{filteredSpots.length} spots in view • {visitedCount} visited</Text>
         </View>
       </View>
 
-      <View style={styles.filterRow}>
-        {CATEGORIES.map(cat => (
-          <Pressable
-            key={cat}
-            style={[
-              styles.filterChip,
-              selectedCategory === cat && styles.filterChipActive,
-              selectedCategory === cat && cat !== 'All' && { backgroundColor: CATEGORY_COLORS[cat] },
-            ]}
-            onPress={() => setSelectedCategory(cat)}
-          >
-            <Text style={[styles.filterText, selectedCategory === cat && styles.filterTextActive]}>{cat}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={INDIA_REGION}
-        minZoomLevel={3}
-        maxZoomLevel={18}
-        mapType="standard"
-        scrollEnabled
-        rotateEnabled
-        zoomEnabled
-        zoomTapEnabled
-        pitchEnabled
-        showsCompass
-      >
-        {filteredSpots.map(spot => (
-          <Marker
-            key={spot.id}
-            coordinate={{ latitude: spot.latitude, longitude: spot.longitude }}
-            title={spot.is_visited ? `${spot.name} • Visited` : spot.name}
-            description={`${spot.city}, ${spot.country} • ${spot.category}`}
-            pinColor={spot.is_visited ? colors.success : (CATEGORY_COLORS[spot.category] || colors.primary)}
-            onPress={() =>
-              navigation.navigate('SpotDetail', {
-                spotId: spot.id,
-                spotName: spot.name,
-              })
-            }
+      <View style={styles.toolbarRow}>
+        <Pressable
+          style={[styles.toolbarChip, viewMode === 'all' && styles.toolbarChipActive]}
+          onPress={() => {
+            setViewMode('all');
+            setShowFilters(false);
+          }}
+        >
+          <Text style={[styles.toolbarChipText, viewMode === 'all' && styles.toolbarChipTextActive]}>
+            All Spots
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.toolbarChip, viewMode === 'visited' && styles.toolbarChipActive]}
+          onPress={() => {
+            setViewMode('visited');
+            setShowFilters(false);
+          }}
+        >
+          <Text style={[styles.toolbarChipText, viewMode === 'visited' && styles.toolbarChipTextActive]}>
+            Your Spots
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.filterTrigger, showFilters && styles.filterTriggerActive]}
+          onPress={() => setShowFilters(current => !current)}
+        >
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={16}
+            color={showFilters || selectedCategory !== 'All' ? colors.white : colors.textPrimary}
           />
-        ))}
-      </MapView>
-
-      <View style={styles.controls}>
-        <Pressable style={styles.controlBtn} onPress={() => changeZoom(1)}>
-          <MaterialCommunityIcons name="plus" size={22} color={colors.textPrimary} />
-        </Pressable>
-        <Pressable style={styles.controlBtn} onPress={() => changeZoom(-1)}>
-          <MaterialCommunityIcons name="minus" size={22} color={colors.textPrimary} />
-        </Pressable>
-        <Pressable style={styles.controlBtn} onPress={goToIndia}>
-          <MaterialCommunityIcons name="crosshairs-gps" size={20} color={colors.textPrimary} />
-        </Pressable>
-        <Pressable style={styles.controlBtn} onPress={loadIndiaSpots}>
-          <MaterialCommunityIcons name="refresh" size={20} color={colors.textPrimary} />
+          <Text style={[styles.filterTriggerText, (showFilters || selectedCategory !== 'All') && styles.filterTriggerTextActive]}>
+            {activeFilterLabel}
+          </Text>
         </Pressable>
       </View>
 
-      <View style={styles.tipCard}>
-        <MaterialCommunityIcons name="gesture-pinch" size={18} color={colors.textSecondary} />
-        <Text style={styles.tipText}>
-          Pinch or use + / - to zoom. Green markers are places you have physically visited.
-        </Text>
+      {showFilters ? (
+        <View style={styles.filterPanel}>
+          <Text style={styles.filterPanelLabel}>Category</Text>
+          <View style={styles.filterOptionsRow}>
+            {categories.map(cat => (
+              <Pressable
+                key={cat}
+                style={[
+                  styles.filterChip,
+                  selectedCategory === cat && styles.filterChipActive,
+                  selectedCategory === cat && cat !== 'All' && { backgroundColor: CATEGORY_COLORS[cat] },
+                ]}
+                onPress={() => {
+                  setSelectedCategory(cat);
+                  setShowFilters(false);
+                }}
+              >
+                <Text style={[styles.filterText, selectedCategory === cat && styles.filterTextActive]}>{cat}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.filterPanelLabel}>Region</Text>
+          <View style={styles.filterOptionsRow}>
+            {COUNTRY_OPTIONS.map(option => (
+              <Pressable
+                key={option.key}
+                style={[styles.countryChip, selectedCountry === option.key && styles.countryChipActive]}
+                onPress={() => setSelectedCountry(option.key)}
+              >
+                <Text style={[styles.countryChipText, selectedCountry === option.key && styles.countryChipTextActive]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.mapWrap}>
+        <WebView
+          style={styles.map}
+          source={{ html: mapHtml }}
+          originWhitelist={['*']}
+          javaScriptEnabled
+          domStorageEnabled
+          onMessage={handleMapMessage}
+          setSupportMultipleWindows={false}
+          startInLoadingState
+          renderLoading={() => (
+            <View style={styles.webLoadingOverlay}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.webLoadingText}>Rendering map...</Text>
+            </View>
+          )}
+        />
       </View>
+
+      {!filteredSpots.length ? (
+        <View style={styles.emptyMapCard}>
+          <MaterialCommunityIcons name="map-marker-off-outline" size={20} color={colors.textSecondary} />
+          <Text style={styles.emptyMapText}>
+            No spots match the current map filters. Switch back to All Spots or another category.
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -222,24 +451,80 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
   headerSub: { color: colors.primary, fontWeight: '700', fontSize: 14, marginTop: 2 },
-  visitSummary: {
+  toolbarRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  toolbarChip: {
+    minWidth: 108,
+    borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolbarChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  toolbarChipText: { color: colors.textSecondary, fontWeight: '800', fontSize: 12 },
+  toolbarChipTextActive: { color: colors.white },
+  filterTrigger: {
+    marginLeft: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
     borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  visitSummaryText: { color: colors.textPrimary, fontWeight: '700', fontSize: 12 },
-  filterRow: {
-    flexDirection: 'row',
+  filterTriggerActive: {
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
+  },
+  filterTriggerText: { color: colors.textPrimary, fontWeight: '800', fontSize: 12 },
+  filterTriggerTextActive: { color: colors.white },
+  filterPanel: {
     backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    gap: 6,
-    flexWrap: 'wrap',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow,
   },
+  filterPanelLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  filterOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  countryChip: {
+    borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  countryChipActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
+  countryChipText: { color: colors.textSecondary, fontWeight: '800', fontSize: 12 },
+  countryChipTextActive: { color: colors.background },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -251,33 +536,30 @@ const styles = StyleSheet.create({
   filterChipActive: { borderColor: 'transparent' },
   filterText: { color: colors.textSecondary, fontWeight: '700', fontSize: 12 },
   filterTextActive: { color: colors.white },
-  map: { flex: 1 },
-  controls: { position: 'absolute', right: 16, bottom: 106, gap: 10 },
-  controlBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.surface,
+  mapWrap: { flex: 1, backgroundColor: '#dbeafe' },
+  map: { flex: 1, backgroundColor: '#dbeafe' },
+  webLoadingOverlay: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow,
+    backgroundColor: '#dbeafe',
+    gap: 8,
   },
-  tipCard: {
+  webLoadingText: { color: colors.textSecondary, fontSize: 13 },
+  emptyMapCard: {
     position: 'absolute',
-    left: 12,
-    right: 12,
+    left: 16,
+    right: 16,
     bottom: 24,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    padding: spacing.md,
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     alignItems: 'center',
+    ...shadow,
   },
-  tipText: { color: colors.textSecondary, fontSize: 12, flex: 1 },
+  emptyMapText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
 });

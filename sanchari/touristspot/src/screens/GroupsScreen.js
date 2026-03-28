@@ -1,16 +1,17 @@
-import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AppHeader from '../components/ui/AppHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { groupsAPI } from '../api';
 import { colors, radius, shadow, spacing } from '../theme';
 
-export default function GroupsScreen({ navigation }) {
+export default function GroupsScreen({ navigation, route }) {
   const [groups, setGroups] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const handledInviteRef = useRef(null);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -47,13 +48,14 @@ export default function GroupsScreen({ navigation }) {
     }
   }
 
-  async function handleJoinGroup() {
-    if (!inviteCode.trim()) {
+  const handleJoinGroup = useCallback(async (overrideCode) => {
+    const code = String(overrideCode || inviteCode || '').trim().toUpperCase();
+    if (!code) {
       return Alert.alert('Invite code', 'Enter the group invite code.');
     }
     setLoading(true);
     try {
-      const response = await groupsAPI.joinGroup(inviteCode.trim().toUpperCase());
+      const response = await groupsAPI.joinGroup(code);
       setInviteCode('');
       await loadGroups();
       navigation.navigate('GroupPlanner', {
@@ -64,6 +66,33 @@ export default function GroupsScreen({ navigation }) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to join group');
     } finally {
       setLoading(false);
+    }
+  }, [inviteCode, loadGroups, navigation]);
+
+  useEffect(() => {
+    const linkedInviteCode = String(route?.params?.inviteCode || '').trim().toUpperCase();
+    if (!linkedInviteCode || handledInviteRef.current === linkedInviteCode) return;
+
+    handledInviteRef.current = linkedInviteCode;
+    setInviteCode(linkedInviteCode);
+    handleJoinGroup(linkedInviteCode);
+  }, [handleJoinGroup, route?.params?.inviteCode]);
+
+  async function handleShareGroup(group) {
+    const deepLink = `touristspot://groups/join/${group.invite_code}`;
+    const message =
+      `Join "${group.name}" in TouristSpot.\n` +
+      `Open this link in the app: ${deepLink}\n` +
+      `Invite code: ${group.invite_code}`;
+
+    try {
+      await Share.share({
+        title: `Join ${group.name}`,
+        message,
+        url: deepLink,
+      });
+    } catch (error) {
+      Alert.alert('Share failed', 'Could not open the share sheet right now.');
     }
   }
 
@@ -99,7 +128,7 @@ export default function GroupsScreen({ navigation }) {
                 placeholder="AB12CD"
                 placeholderTextColor={colors.textMuted}
               />
-              <PrimaryButton label="Join Group" onPress={handleJoinGroup} loading={loading} />
+              <PrimaryButton label="Join Group" onPress={() => handleJoinGroup()} loading={loading} />
             </View>
 
             <Text style={styles.sectionTitle}>Your groups</Text>
@@ -115,6 +144,15 @@ export default function GroupsScreen({ navigation }) {
               <Text style={styles.groupMeta}>
                 Code {item.invite_code} • {item.member_count} members • {item.suggestion_count} spots
               </Text>
+              <Pressable
+                style={styles.shareLinkBtn}
+                onPress={(event) => {
+                  event.stopPropagation();
+                  handleShareGroup(item);
+                }}
+              >
+                <Text style={styles.shareLinkBtnText}>Share join link</Text>
+              </Pressable>
             </View>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.accepted_count || 0} yes</Text>
@@ -166,6 +204,17 @@ const styles = StyleSheet.create({
   groupInfo: { flex: 1 },
   groupName: { color: colors.textPrimary, fontSize: 17, fontWeight: '800' },
   groupMeta: { color: colors.textSecondary, fontSize: 12, marginTop: 6 },
+  shareLinkBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.round,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  shareLinkBtnText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
   badge: {
     minWidth: 64,
     borderRadius: radius.round,

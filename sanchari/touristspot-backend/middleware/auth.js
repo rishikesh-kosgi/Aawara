@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { db } = require('../database');
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Authorization token required' });
@@ -9,7 +9,7 @@ function authMiddleware(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = db.prepare(`
+    const user = await db.prepare(`
       SELECT id, phone, name, email, google_id, avatar_url, auth_provider, is_admin, points
       FROM users
       WHERE id = ?
@@ -29,13 +29,13 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     req.user = null;
     return next();
   }
-  authMiddleware(req, res, next);
+  return authMiddleware(req, res, next);
 }
 
 module.exports = { authMiddleware, adminMiddleware, optionalAuth };

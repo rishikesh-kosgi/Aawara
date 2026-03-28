@@ -16,7 +16,7 @@ import AppHeader from '../components/ui/AppHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { colors, radius, shadow, spacing } from '../theme';
 
-const CATEGORIES = ['Landmark', 'Historical', 'Nature', 'Beach', 'General'];
+const CATEGORIES = ['Landmark', 'Historical', 'Nature', 'Beach', 'Temple', 'Trekking', 'General'];
 
 function Field({ label, required = false, children }) {
   return (
