@@ -3,8 +3,10 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../database');
 const { authMiddleware } = require('../middleware/auth');
+const { getConfig } = require('../config');
 
 const router = express.Router();
+const { googleWebClientId, jwtSecret } = getConfig();
 
 async function verifyGoogleIdToken(idToken) {
   const response = await fetch(
@@ -15,7 +17,7 @@ async function verifyGoogleIdToken(idToken) {
   }
 
   const payload = await response.json();
-  const expectedAudience = process.env.GOOGLE_WEB_CLIENT_ID;
+  const expectedAudience = googleWebClientId;
   if (expectedAudience && payload.aud !== expectedAudience) {
     throw new Error('Google client ID mismatch');
   }
@@ -64,7 +66,7 @@ router.post('/google', async (req, res) => {
       user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '30d' });
     res.json({
       success: true,
       message: 'Google login successful',

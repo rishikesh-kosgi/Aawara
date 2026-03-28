@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Image,
   PanResponder,
   Pressable,
   ScrollView,
@@ -13,8 +14,9 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import AppHeader from '../components/ui/AppHeader';
-import { groupsAPI } from '../api';
-import { colors, radius, shadow, spacing } from '../theme';
+import { BASE_URL, groupsAPI } from '../api';
+import { radius, shadow, spacing, typography } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.22;
@@ -26,7 +28,15 @@ function normalizeSuggestion(item) {
   };
 }
 
+function getSuggestionImageUrl(imageUrl) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('http')) return imageUrl;
+  return `${BASE_URL}/uploads/${imageUrl}`;
+}
+
 export default function GroupPlannerScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { groupId, groupName } = route.params;
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
@@ -173,30 +183,47 @@ export default function GroupPlannerScreen({ navigation, route }) {
               {...panResponder.panHandlers}
             >
               <View style={styles.voteHintRow}>
-                <Text style={[styles.voteHint, styles.voteYes]}>RIGHT = GO</Text>
-                <Text style={[styles.voteHint, styles.voteNo]}>LEFT = SKIP</Text>
+                <Text style={[styles.voteHint, styles.voteYes]}>Swipe right</Text>
+                <Text style={[styles.voteHint, styles.voteNo]}>Swipe left</Text>
               </View>
 
-              <Text style={styles.cardTitle}>{currentSuggestion.name}</Text>
-              <Text style={styles.cardMeta}>
-                {currentSuggestion.city}, {currentSuggestion.country} • {currentSuggestion.category}
-              </Text>
-              <Text style={styles.cardDescription} numberOfLines={4}>
-                {currentSuggestion.description || 'No description available.'}
-              </Text>
-
-              <View style={styles.voteStats}>
-                <View style={styles.votePill}>
-                  <MaterialCommunityIcons name="thumb-up-outline" size={16} color={colors.success} />
-                  <Text style={styles.votePillText}>{currentSuggestion.yes_votes || 0}</Text>
+              <View style={styles.suggestionImageWrap}>
+                {getSuggestionImageUrl(currentSuggestion.image_url) ? (
+                  <Image
+                    source={{ uri: getSuggestionImageUrl(currentSuggestion.image_url) }}
+                    style={styles.suggestionImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.suggestionImage, styles.suggestionImageFallback]}>
+                    <MaterialCommunityIcons name="image-outline" size={36} color={colors.textMuted} />
+                  </View>
+                )}
+                <View style={styles.suggestionBadge}>
+                  <Text style={styles.suggestionBadgeText}>{currentSuggestion.category}</Text>
                 </View>
-                <View style={[styles.votePill, styles.votePillNo]}>
-                  <MaterialCommunityIcons name="thumb-down-outline" size={16} color={colors.danger} />
-                  <Text style={styles.votePillText}>{currentSuggestion.no_votes || 0}</Text>
+                <View style={styles.voteStats}>
+                  <View style={styles.votePill}>
+                    <MaterialCommunityIcons name="thumb-up-outline" size={15} color={colors.textDark} />
+                    <Text style={styles.votePillText}>{currentSuggestion.yes_votes || 0}</Text>
+                  </View>
+                  <View style={[styles.votePill, styles.votePillNo]}>
+                    <MaterialCommunityIcons name="thumb-down-outline" size={15} color={colors.textPrimary} />
+                    <Text style={styles.votePillNoText}>{currentSuggestion.no_votes || 0}</Text>
+                  </View>
                 </View>
               </View>
 
-              <Text style={styles.suggestedBy}>Suggested by {currentSuggestion.suggested_by_name || 'Friend'}</Text>
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>{currentSuggestion.name}</Text>
+                <Text style={styles.cardMeta}>
+                  {currentSuggestion.city}, {currentSuggestion.country}
+                </Text>
+                <Text style={styles.cardDescription} numberOfLines={4}>
+                  {currentSuggestion.description || 'No description available.'}
+                </Text>
+                <Text style={styles.suggestedBy}>Suggested by {currentSuggestion.suggested_by_name || 'Friend'}</Text>
+              </View>
 
               <View style={styles.actionRow}>
                 <Pressable style={[styles.actionButton, styles.noButton]} onPress={() => voteAndAdvance('no')}>
@@ -261,7 +288,7 @@ export default function GroupPlannerScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingBottom: 120 },
   headerMeta: {
@@ -274,11 +301,11 @@ const styles = StyleSheet.create({
   metaText: { color: colors.textSecondary, fontSize: 13 },
   shareButton: {
     borderRadius: radius.round,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  shareButtonText: { color: colors.textPrimary, fontWeight: '700', fontSize: 12 },
+  shareButtonText: { color: colors.textDark, fontWeight: '800', fontSize: 12 },
   memberRow: {
     flexDirection: 'row',
     gap: 8,
@@ -291,9 +318,9 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
   },
-  memberChipText: { color: colors.white, fontWeight: '800' },
+  memberChipText: { color: colors.textDark, fontWeight: '800' },
   deckArea: {
     minHeight: 520,
     paddingHorizontal: spacing.lg,
@@ -305,8 +332,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.xl,
-    minHeight: 420,
+    padding: spacing.lg,
+    minHeight: 520,
     ...shadow,
   },
   cardStack: {
@@ -315,39 +342,80 @@ const styles = StyleSheet.create({
     right: spacing.lg,
   },
   stackHint: { color: colors.textMuted, fontWeight: '700' },
-  voteHintRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
-  voteHint: { fontSize: 12, fontWeight: '800' },
+  voteHintRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm, paddingHorizontal: spacing.sm },
+  voteHint: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
   voteYes: { color: colors.success },
   voteNo: { color: colors.danger },
-  cardTitle: { color: colors.textPrimary, fontSize: 28, fontWeight: '800' },
-  cardMeta: { color: colors.primary, marginTop: 8, fontSize: 14, fontWeight: '700' },
-  cardDescription: { color: colors.textSecondary, marginTop: spacing.md, fontSize: 15, lineHeight: 23 },
-  voteStats: { flexDirection: 'row', gap: 10, marginTop: spacing.lg },
+  suggestionImageWrap: {
+    position: 'relative',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    height: 308,
+    backgroundColor: colors.surfaceMuted,
+  },
+  suggestionImage: {
+    width: '100%',
+    height: '100%',
+  },
+  suggestionImageFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionBadge: {
+    position: 'absolute',
+    left: spacing.md,
+    bottom: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radius.round,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  suggestionBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  voteStats: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    flexDirection: 'row',
+    gap: 8,
+  },
   votePill: {
     borderRadius: radius.round,
-    backgroundColor: 'rgba(39,174,96,0.15)',
+    backgroundColor: colors.card,
     paddingHorizontal: 12,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  votePillNo: { backgroundColor: 'rgba(233,69,96,0.15)' },
-  votePillText: { color: colors.textPrimary, fontWeight: '800' },
-  suggestedBy: { color: colors.textMuted, marginTop: spacing.lg, fontSize: 13 },
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 'auto' },
+  votePillNo: { backgroundColor: 'rgba(17,17,17,0.68)' },
+  votePillText: { color: colors.textDark, fontWeight: '800' },
+  votePillNoText: { color: colors.textPrimary, fontWeight: '800' },
+  cardBody: {
+    paddingHorizontal: 2,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  cardTitle: { color: colors.textPrimary, fontSize: typography.title, fontWeight: '500', letterSpacing: -1.1, fontStyle: 'italic' },
+  cardMeta: { color: colors.textSecondary, marginTop: 10, fontSize: 15, fontWeight: '600' },
+  cardDescription: { color: colors.textSecondary, marginTop: spacing.md, fontSize: typography.body, lineHeight: 25 },
+  suggestedBy: { color: colors.textMuted, marginTop: spacing.md, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.9 },
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: spacing.md },
   actionButton: {
     flex: 1,
-    minHeight: 46,
-    borderRadius: radius.md,
+    minHeight: 56,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noButton: { backgroundColor: colors.danger },
-  yesButton: { backgroundColor: colors.success },
-  detailsButton: { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
-  actionButtonText: { color: colors.white, fontWeight: '800' },
-  detailsButtonText: { color: colors.textPrimary, fontWeight: '800' },
+  noButton: { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
+  yesButton: { backgroundColor: colors.card },
+  detailsButton: { backgroundColor: colors.primary },
+  actionButtonText: { color: colors.textPrimary, fontWeight: '800', fontSize: 14 },
+  detailsButtonText: { color: colors.white, fontWeight: '800', fontSize: 14 },
   emptyCard: { justifyContent: 'center' },
   reviewedSection: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   reviewedTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: spacing.sm },
@@ -373,9 +441,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  reviewBadgeYes: { backgroundColor: colors.success },
-  reviewBadgeNo: { backgroundColor: colors.danger },
-  reviewBadgeText: { color: colors.white, fontWeight: '800', fontSize: 12 },
+  reviewBadgeYes: { backgroundColor: colors.card },
+  reviewBadgeNo: { backgroundColor: colors.surfaceMuted },
+  reviewBadgeText: { color: colors.textDark, fontWeight: '800', fontSize: 12 },
   reviewedEmpty: { color: colors.textMuted, fontSize: 13 },
   footerHint: {
     color: colors.textSecondary,

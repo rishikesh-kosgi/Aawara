@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
 import { useAuth } from '../utils/AuthContext';
 import { authAPI } from '../api';
 import AppHeader from '../components/ui/AppHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import Pill from '../components/ui/Pill';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function ProfileScreen({ navigation }) {
+  const { colors, isDark, setMode } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     user,
     logout,
@@ -45,10 +48,10 @@ export default function ProfileScreen({ navigation }) {
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>
-        <AppHeader title="Profile" subtitle="Manage account settings" />
+        <AppHeader title="Profile" subtitle="Your travel identity" />
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Text style={styles.bigEmoji}>🔐</Text>
+            <Text style={styles.bigEmoji}>A</Text>
           </View>
           <Text style={styles.emptyTitle}>Log in to access your profile</Text>
           <Text style={styles.emptySub}>Track points, manage account, and save favorites.</Text>
@@ -60,9 +63,10 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Profile" subtitle="Account and preferences" />
+      <AppHeader title="Profile" subtitle="Account and travel preferences" />
       <View style={styles.content}>
         <View style={styles.profileCard}>
+          <Text style={styles.kicker}>Aawara Passport</Text>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user?.name ? user.name[0].toUpperCase() : '?'}</Text>
           </View>
@@ -102,6 +106,13 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.menuCard}>
+          <Pressable style={styles.menuItem} onPress={() => setMode(isDark ? 'light' : 'dark')}>
+            <View style={[styles.menuIconWrap, styles.reviewIconWrap]}>
+              <Text style={styles.smallEmoji}>{isDark ? '☀️' : '🌙'}</Text>
+            </View>
+            <Text style={styles.menuText}>Theme</Text>
+            <Text style={styles.themeValue}>{isDark ? 'Dark' : 'Light'}</Text>
+          </Pressable>
           <Pressable style={styles.menuItem} onPress={() => navigation.navigate('Groups')}>
             <View style={[styles.menuIconWrap, styles.reviewIconWrap]}>
               <Text style={styles.smallEmoji}>👥</Text>
@@ -143,7 +154,7 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md },
   emptyState: {
@@ -156,12 +167,12 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
-    backgroundColor: '#ECFEFF',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: { marginTop: spacing.md, color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
-  bigEmoji: { fontSize: 38 },
+  bigEmoji: { fontSize: 34, color: colors.textDark },
   emptySub: { marginTop: 6, color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
   emptyButton: { width: '100%', marginTop: spacing.xl },
   profileCard: {
@@ -174,18 +185,27 @@ const styles = StyleSheet.create({
     gap: 8,
     ...shadow,
   },
+  kicker: {
+    alignSelf: 'flex-start',
+    color: colors.accent,
+    textTransform: 'uppercase',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
   avatar: {
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: spacing.sm,
   },
-  avatarText: { color: colors.white, fontSize: 36, fontWeight: '800' },
+  avatarText: { color: colors.textDark, fontSize: 36, fontWeight: '800' },
   nameRow: { width: '100%', alignItems: 'center', marginTop: spacing.sm },
   inlineName: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  userName: { color: colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  userName: { color: colors.textPrimary, fontSize: 28, fontWeight: '800', letterSpacing: -0.8 },
   userPhone: { color: colors.textSecondary, fontSize: 13 },
   editRow: { width: '100%', flexDirection: 'row', gap: 8, alignItems: 'center' },
   nameInput: {
@@ -205,9 +225,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
   },
-  iconEmoji: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  iconEmoji: { color: colors.textDark, fontSize: 16, fontWeight: '800' },
   cancelEmoji: { color: colors.textSecondary },
   smallEmoji: { fontSize: 16, color: colors.textMuted },
   cancelAction: { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
@@ -229,12 +249,13 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reviewIconWrap: { backgroundColor: '#CCFBF1' },
+  reviewIconWrap: { backgroundColor: colors.cardMuted },
   menuText: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  themeValue: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
   badgeCount: {
     minWidth: 22,
     height: 22,
@@ -246,5 +267,5 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   badgeCountText: { color: colors.white, fontSize: 11, fontWeight: '800' },
-  logoutBtn: { backgroundColor: colors.danger, marginTop: spacing.sm },
+  logoutBtn: { backgroundColor: colors.primary, marginTop: spacing.sm },
 });

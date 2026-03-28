@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,12 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { authAPI } from '../api';
 import { useAuth } from '../utils/AuthContext';
 import { GOOGLE_WEB_CLIENT_ID } from '../config/googleAuth';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function LoginScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
@@ -55,24 +59,34 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#07111f" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
-      <View style={styles.hero}>
-        <Text style={styles.badge}>India Travel Journal</Text>
-        <Text style={styles.title}>Sign in with Gmail to unlock maps, visits, and photo sharing.</Text>
+      <View style={styles.heroCard}>
+        <Text style={styles.kicker}>Aawara Travel Companion</Text>
+        <Text style={styles.title}>Collect places, journeys, and memories in one quiet map.</Text>
         <Text style={styles.subtitle}>
-          This app now requires login before use. Only verified Gmail accounts are allowed.
+          Sign in to save visits, share group trips, upload real spot photos, and keep your travel history synced.
         </Text>
+
+        <View style={styles.metricRow}>
+          <View style={styles.metricPill}>
+            <Text style={styles.metricLabel}>Map</Text>
+            <Text style={styles.metricValue}>Live Spots</Text>
+          </View>
+          <View style={styles.metricPill}>
+            <Text style={styles.metricLabel}>Trips</Text>
+            <Text style={styles.metricValue}>Group Plans</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.actionCard}>
         <View style={styles.iconBubble}>
-          <MaterialCommunityIcons name="google" size={34} color="#ffffff" />
+          <MaterialCommunityIcons name="compass-rose" size={30} color={colors.textDark} />
         </View>
-
         <Text style={styles.cardTitle}>Continue with Google</Text>
         <Text style={styles.cardHint}>
-          Use your Gmail account to save visited spots, upload photos, and sync your activity across devices.
+          The app keeps the same features you already use. This just secures your account and syncs your progress.
         </Text>
 
         <TouchableOpacity
@@ -81,88 +95,127 @@ export default function LoginScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#0b1220" />
+            <ActivityIndicator color={colors.textDark} />
           ) : (
             <>
-              <MaterialCommunityIcons name="google" size={22} color="#0b1220" />
+              <MaterialCommunityIcons name="google" size={20} color={colors.textDark} />
               <Text style={styles.buttonText}>Sign in with Gmail</Text>
             </>
           )}
         </TouchableOpacity>
 
         <Text style={styles.terms}>
-          By continuing, you agree to our Terms. Your Google account email must end with `@gmail.com`.
+          Your saved spots, groups, uploads, and visits remain tied to your account.
         </Text>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#07111f',
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
-  hero: {
-    marginBottom: 28,
+  heroCard: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxl,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow,
   },
-  badge: {
+  kicker: {
     alignSelf: 'flex-start',
-    backgroundColor: '#16324a',
-    color: '#d8ecff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: '700',
+    backgroundColor: colors.cardMuted,
+    color: colors.textDark,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.round,
+    fontSize: 11,
+    fontWeight: '800',
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   title: {
-    color: '#f7fbff',
-    fontSize: 32,
+    color: colors.textPrimary,
+    fontSize: 34,
     lineHeight: 40,
     fontWeight: '800',
+    letterSpacing: -1,
   },
   subtitle: {
-    marginTop: 12,
-    color: '#9eb5ca',
+    marginTop: spacing.md,
+    color: colors.textSecondary,
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 24,
   },
-  card: {
-    borderRadius: 28,
-    backgroundColor: '#f8fbff',
-    paddingHorizontal: 24,
-    paddingVertical: 28,
+  metricRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
   },
-  iconBubble: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1a73e8',
-    marginBottom: 18,
+  metricPill: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  cardTitle: {
-    color: '#111827',
-    fontSize: 24,
+  metricLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    marginTop: 6,
+    color: colors.textPrimary,
+    fontSize: 16,
     fontWeight: '800',
   },
+  actionCard: {
+    marginTop: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    ...shadow,
+  },
+  iconBubble: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    marginBottom: spacing.md,
+  },
+  cardTitle: {
+    color: colors.textDark,
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
   cardHint: {
-    color: '#516072',
+    color: '#5F4A3C',
     fontSize: 14,
     lineHeight: 22,
-    marginTop: 10,
-    marginBottom: 22,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   button: {
-    minHeight: 56,
-    borderRadius: 16,
-    backgroundColor: '#fbbc04',
+    minHeight: 58,
+    borderRadius: radius.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(38,27,20,0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -172,13 +225,13 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: '#0b1220',
+    color: colors.textDark,
     fontSize: 16,
     fontWeight: '800',
   },
   terms: {
-    marginTop: 18,
-    color: '#6b7280',
+    marginTop: spacing.md,
+    color: '#6E594A',
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',

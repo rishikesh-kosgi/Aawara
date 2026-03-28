@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import { authAPI } from '../api';
 import { useAuth } from '../utils/AuthContext';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function SetNameScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { updateUser } = useAuth();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,15 +33,17 @@ export default function SetNameScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.emoji}>👋</Text>
-      <Text style={styles.title}>Welcome!</Text>
-      <Text style={styles.subtitle}>What should we call you?</Text>
+      <View style={styles.card}>
+        <Text style={styles.eyebrow}>Almost there</Text>
+        <Text style={styles.emoji}>A</Text>
+        <Text style={styles.title}>Welcome to Aawara</Text>
+        <Text style={styles.subtitle}>What should we call you?</Text>
       <TextInput
         style={styles.input}
         value={name}
         onChangeText={setName}
         placeholder="Enter your display name"
-        placeholderTextColor="#888"
+        placeholderTextColor={colors.textMuted}
         autoFocus
         returnKeyType="done"
         onSubmitEditing={handleSetName}
@@ -48,36 +54,58 @@ export default function SetNameScreen({ navigation }) {
         disabled={loading}
       >
         {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Get Started 🚀</Text>
+          ? <ActivityIndicator color={colors.textDark} />
+          : <Text style={styles.buttonText}>Get Started</Text>
         }
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.replace('MainTabs')} style={styles.skip}>
         <Text style={styles.skipText}>Skip for now</Text>
       </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#1a1a2e',
+    flex: 1, backgroundColor: colors.background,
     alignItems: 'center', justifyContent: 'center', padding: 32,
   },
-  emoji: { fontSize: 64, marginBottom: 16 },
-  title: { fontSize: 32, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#aaa', marginBottom: 32 },
+  card: {
+    width: '100%',
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.xl,
+    ...shadow,
+  },
+  eyebrow: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+  emoji: {
+    fontSize: 36,
+    marginBottom: 16,
+    color: colors.textDark,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+  },
+  title: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginBottom: 8, letterSpacing: -0.8 },
+  subtitle: { fontSize: 16, color: colors.textSecondary, marginBottom: 32 },
   input: {
-    width: '100%', backgroundColor: '#16213e', borderRadius: 14,
+    width: '100%', backgroundColor: colors.surfaceMuted, borderRadius: radius.md,
     paddingHorizontal: 18, paddingVertical: 14, fontSize: 18,
-    color: '#fff', borderWidth: 1.5, borderColor: '#333', marginBottom: 20,
+    color: colors.textPrimary, borderWidth: 1.5, borderColor: colors.border, marginBottom: 20,
   },
   button: {
-    backgroundColor: '#e94560', borderRadius: 14,
+    backgroundColor: colors.card, borderRadius: radius.md,
     paddingVertical: 16, width: '100%', alignItems: 'center', marginBottom: 16,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 17 },
+  buttonText: { color: colors.textDark, fontWeight: '800', fontSize: 17 },
   skip: { paddingVertical: 8 },
-  skipText: { color: '#888', fontSize: 14 },
+  skipText: { color: colors.textMuted, fontSize: 14, textAlign: 'center' },
 });

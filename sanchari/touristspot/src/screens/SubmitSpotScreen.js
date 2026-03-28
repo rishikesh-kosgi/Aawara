@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,14 @@ import { spotsAPI } from '../api';
 import { useAuth } from '../utils/AuthContext';
 import AppHeader from '../components/ui/AppHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const CATEGORIES = ['Landmark', 'Historical', 'Nature', 'Beach', 'Temple', 'Trekking', 'General'];
 
 function Field({ label, required = false, children }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>
@@ -31,6 +34,8 @@ function Field({ label, required = false, children }) {
 }
 
 export default function SubmitSpotScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { isLoggedIn, refreshUser } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -97,7 +102,7 @@ export default function SubmitSpotScreen({ navigation }) {
       <AppHeader title="Add New Spot" subtitle="Share a location with live updates" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
         <View style={styles.infoBox}>
-          <Text style={styles.infoEmoji}>💡</Text>
+          <Text style={styles.infoEmoji}>A</Text>
           <Text style={styles.infoText}>
             Add accurate details. Spots are visible after community approval. You get reward points for accepted spots.
           </Text>
@@ -172,7 +177,7 @@ export default function SubmitSpotScreen({ navigation }) {
         <Field label="Location Coordinates" required>
           <Pressable style={styles.locationBtn} onPress={useMyLocation} disabled={locating}>
             {locating ? (
-              <ActivityIndicator color={colors.white} />
+              <ActivityIndicator color={colors.textDark} />
             ) : (
               <>
                 <Text style={styles.locationEmoji}>📍</Text>
@@ -211,22 +216,22 @@ export default function SubmitSpotScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   form: { padding: spacing.lg, paddingBottom: 40 },
   infoBox: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'flex-start',
-    backgroundColor: '#ECFEFF',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#A5F3FC',
+    borderColor: 'transparent',
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  infoText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 20 },
-  infoEmoji: { fontSize: 16 },
+  infoText: { flex: 1, color: colors.textDark, fontSize: 13, lineHeight: 20 },
+  infoEmoji: { fontSize: 18, color: colors.textDark },
   fieldWrap: { marginTop: spacing.md },
   label: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginBottom: 8 },
   input: {
@@ -250,21 +255,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     justifyContent: 'center',
   },
-  catChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catChipActive: { backgroundColor: colors.card, borderColor: 'transparent' },
   catText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
-  catTextActive: { color: colors.white },
+  catTextActive: { color: colors.textDark },
   locationBtn: {
     minHeight: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
     ...shadow,
   },
-  locationBtnText: { color: colors.white, fontSize: 14, fontWeight: '700' },
-  locationEmoji: { color: colors.white, fontSize: 14 },
+  locationBtnText: { color: colors.textDark, fontSize: 14, fontWeight: '800' },
+  locationEmoji: { color: colors.textDark, fontSize: 14 },
   coordsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   coordInput: { flex: 1 },
   submitBtn: { marginTop: spacing.xl },
@@ -280,6 +285,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  pendingBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
-  pendingEmoji: { fontSize: 15 },
+  pendingBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
+  pendingEmoji: { fontSize: 15, color: colors.card },
 });

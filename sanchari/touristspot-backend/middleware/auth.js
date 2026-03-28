@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { db } = require('../database');
+const { getConfig } = require('../config');
+
+const { jwtSecret } = getConfig();
 
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -8,7 +11,7 @@ async function authMiddleware(req, res, next) {
   }
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
     const user = await db.prepare(`
       SELECT id, phone, name, email, google_id, avatar_url, auth_provider, is_admin, points
       FROM users

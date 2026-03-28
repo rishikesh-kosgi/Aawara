@@ -1,23 +1,22 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  API_TIMEOUT_MS,
+  DEV_FALLBACK_BASE_URLS,
+  PRODUCTION_CONFIG_URLS,
+  RELEASE_FALLBACK_BASE_URLS,
+} from '../config/appConfig';
 
 const BASE_URL_STORAGE_KEY = 'api_base_url';
-const FALLBACK_BASE_URLS = [
-  'http://192.168.29.68:5000',
-  'http://127.0.0.1:5000',
-  'http://localhost:5000',
-];
-const BASE_URL_CONFIG_URLS = [
-  'https://raw.githubusercontent.com/rishikesh-kosgi/apiurl/main/baseurl.json',
-  'https://raw.githubusercontent.com/rishikesh-kosgi/apiurl/master/baseurl.json',
-];
+const FALLBACK_BASE_URLS = __DEV__ ? DEV_FALLBACK_BASE_URLS : RELEASE_FALLBACK_BASE_URLS;
+const BASE_URL_CONFIG_URLS = PRODUCTION_CONFIG_URLS;
 
-export let BASE_URL = FALLBACK_BASE_URLS[0];
+export let BASE_URL = FALLBACK_BASE_URLS[0] || '';
 let baseUrlInitPromise = null;
 
 const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
-  timeout: 15000,
+  baseURL: BASE_URL ? `${BASE_URL}/api` : undefined,
+  timeout: API_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -160,9 +159,13 @@ export const initializeBaseURL = async () => {
       }
     }
 
-    applyBaseUrl(FALLBACK_BASE_URLS[0]);
-    await persistBaseUrl(FALLBACK_BASE_URLS[0]);
-    return BASE_URL;
+    if (FALLBACK_BASE_URLS[0]) {
+      applyBaseUrl(FALLBACK_BASE_URLS[0]);
+      await persistBaseUrl(FALLBACK_BASE_URLS[0]);
+      return BASE_URL;
+    }
+
+    throw new Error('Unable to resolve API base URL. Configure a production base URL before release.');
   })();
 
   return baseUrlInitPromise;

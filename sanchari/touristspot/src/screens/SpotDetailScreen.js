@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,10 +20,10 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { spotsAPI, photosAPI, favoritesAPI, groupsAPI } from '../api';
 import { BASE_URL } from '../api';
 import { useAuth } from '../utils/AuthContext';
-import AppHeader from '../components/ui/AppHeader';
 import Pill from '../components/ui/Pill';
 import PrimaryButton from '../components/ui/PrimaryButton';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing, typography } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = Math.round(height * 0.75);
@@ -110,6 +110,8 @@ function getUploadRejectText(payload) {
 }
 
 export default function SpotDetailScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { spotId, spotName } = route.params;
   const { isLoggedIn, refreshUser } = useAuth();
   const [spot, setSpot] = useState(null);
@@ -124,6 +126,7 @@ export default function SpotDetailScreen({ navigation, route }) {
   const [reviewPhoto, setReviewPhoto] = useState(null);
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [heroPhotoIndex, setHeroPhotoIndex] = useState(0);
   const [visitSyncing, setVisitSyncing] = useState(false);
   const [groupModalVisible, setGroupModalVisible] = useState(false);
   const [groups, setGroups] = useState([]);
@@ -134,6 +137,10 @@ export default function SpotDetailScreen({ navigation, route }) {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spotId]);
+
+  useEffect(() => {
+    setHeroPhotoIndex(0);
+  }, [spotId, photos.length]);
 
   useEffect(() => {
     if (!spot || !isLoggedIn || spot.is_visited || visitSyncing) return;
@@ -343,7 +350,7 @@ export default function SpotDetailScreen({ navigation, route }) {
   if (!spot) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: '#fff', fontSize: 16 }}>Spot not found</Text>
+        <Text style={styles.notFoundText}>Spot not found</Text>
       </View>
     );
   }
@@ -354,46 +361,85 @@ export default function SpotDetailScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <AppHeader
-        title={spotName}
-        subtitle={`${spot?.city || ''}, ${spot?.country || ''}`}
-        onBack={() => navigation.goBack()}
-        rightIcon={spot?.is_favorite ? 'heart' : 'heart-outline'}
-        onRightPress={toggleFavorite}
-      />
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
-          <Pressable style={styles.heroPress} onPress={() => { if (photos.length) openFullscreenAt(0); }}>
-            {firstPhoto ? (
-              <Image
-                source={{ uri: getPhotoUrl(firstPhoto.filename) }}
-                style={styles.heroImage}
-                resizeMode="cover"
+          {photos.length > 0 ? (
+            <>
+              <FlatList
+                data={photos}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={item => item.id}
+                onMomentumScrollEnd={(event) => {
+                  const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+                  setHeroPhotoIndex(nextIndex);
+                }}
+                renderItem={({ item, index }) => (
+                  <Pressable style={styles.heroSlide} onPress={() => openFullscreenAt(index)}>
+                    <Image
+                      source={{ uri: getPhotoUrl(item.filename) }}
+                      style={styles.heroImage}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                )}
               />
-            ) : (
-              <View style={[styles.heroImage, styles.heroPlaceholder]}>
-                <MaterialCommunityIcons name="camera-outline" size={40} color={colors.textSecondary} />
-                <Text style={styles.heroPlaceholderSub}>No live photo yet</Text>
-              </View>
-            )}
-            {firstPhoto && (
               <View style={styles.heroStamp}>
-                <Text style={styles.heroStampText}>{getPhotoBadge(firstPhoto)}</Text>
+                <Text style={styles.heroStampText}>{getPhotoBadge(photos[heroPhotoIndex] || firstPhoto)}</Text>
               </View>
-            )}
-          </Pressable>
+              <View style={styles.heroCounter}>
+                <Text style={styles.heroCounterText}>{heroPhotoIndex + 1}/{photos.length}</Text>
+              </View>
+              <View style={styles.heroDots}>
+                {photos.slice(0, 6).map((photo, index) => (
+                  <View
+                    key={photo.id}
+                    style={[styles.heroDot, heroPhotoIndex === index && styles.heroDotActive]}
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]}>
+              <MaterialCommunityIcons name="camera-outline" size={40} color={colors.textSecondary} />
+              <Text style={styles.heroPlaceholderSub}>No live photo yet</Text>
+            </View>
+          )}
+          <View style={styles.heroTopBar}>
+            <Pressable style={styles.heroIconButton} onPress={() => navigation.goBack()}>
+              <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textPrimary} />
+            </Pressable>
+            <Pressable style={styles.heroIconButton} onPress={toggleFavorite}>
+              <MaterialCommunityIcons
+                name={spot?.is_favorite ? 'heart' : 'heart-outline'}
+                size={20}
+                color={spot?.is_favorite ? colors.primary : colors.textPrimary}
+              />
+            </Pressable>
+          </View>
+          <View style={styles.heroDetails}>
+            <Text style={styles.heroEyebrow}>{spot?.category || 'General'}</Text>
+            <Text style={styles.heroTitle}>{spot?.name}</Text>
+            <View style={styles.heroMetaRow}>
+              <View style={styles.heroMetaPill}>
+                <MaterialCommunityIcons name="map-marker-outline" size={15} color={colors.white} />
+                <Text style={styles.heroMetaText}>{spot?.city}, {spot?.country}</Text>
+              </View>
+              <View style={styles.heroMetaPill}>
+                <MaterialCommunityIcons name="camera-outline" size={15} color={colors.white} />
+                <Text style={styles.heroMetaText}>{realPhotoCount || photos.length} photos</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         <View style={styles.basicCard}>
-          <Text style={styles.basicName}>{spot?.name}</Text>
-          <View style={styles.basicAddressRow}>
-            <MaterialCommunityIcons name="map-marker" size={16} color={colors.textSecondary} />
-            <Text style={styles.basicAddress}>{spot?.address || `${spot?.city}, ${spot?.country}`}</Text>
-          </View>
+          <Text style={styles.kicker}>Included in this spot</Text>
           <View style={styles.basicBadges}>
             <Pill label={spot?.category || 'General'} tone="primary" />
             <Pill label={`${spot?.photo_count || 0}/10 photos`} tone="default" />
+            {realPhotoCount > 0 ? <Pill label={`${realPhotoCount} live`} tone="success" /> : null}
           </View>
         </View>
 
@@ -434,7 +480,7 @@ export default function SpotDetailScreen({ navigation, route }) {
 
         <View style={styles.section}>
           <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Live Photos</Text>
+            <Text style={styles.sectionTitle}>All Photos</Text>
             <Text style={styles.countLabel}>
               {realPhotoCount > 0 ? `${realPhotoCount} photos` : firstPhoto?.is_sample ? 'Sample photo' : '0 photos'}
             </Text>
@@ -542,7 +588,7 @@ export default function SpotDetailScreen({ navigation, route }) {
           </View>
           <View style={styles.reviewActions}>
             <Pressable style={[styles.smallBtn, styles.approveBtn, styles.reviewBtn]} onPress={() => reviewPhoto && approvePhoto(reviewPhoto.id)}>
-              <Text style={styles.smallBtnText}>Accept</Text>
+              <Text style={[styles.smallBtnText, styles.approveBtnText]}>Accept</Text>
             </Pressable>
             <Pressable style={[styles.smallBtn, styles.rejectBtn, styles.reviewBtn]} onPress={() => reviewPhoto && flagPhoto(reviewPhoto.id, 'not_location')}>
               <Text style={styles.smallBtnText}>Reject</Text>
@@ -591,55 +637,134 @@ export default function SpotDetailScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  notFoundText: { color: colors.textPrimary, fontSize: 16 },
   heroWrap: { height: HERO_HEIGHT, backgroundColor: colors.backgroundAlt },
-  heroPress: { flex: 1 },
+  heroSlide: { width, height: HERO_HEIGHT },
   heroImage: { width: '100%', height: '100%' },
   heroPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
   heroPlaceholderSub: { color: colors.textSecondary, marginTop: 6 },
+  heroTopBar: {
+    position: 'absolute',
+    top: 54,
+    left: spacing.md,
+    right: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  heroIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroDetails: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: 48,
+  },
+  heroEyebrow: {
+    color: colors.white,
+    fontSize: typography.micro,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  heroTitle: {
+    color: colors.white,
+    fontSize: typography.display,
+    fontWeight: '500',
+    letterSpacing: -1.4,
+    fontStyle: 'italic',
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: spacing.md,
+  },
+  heroMetaPill: {
+    borderRadius: radius.round,
+    backgroundColor: 'rgba(17,17,17,0.34)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroMetaText: { color: colors.white, fontSize: 12, fontWeight: '700' },
   heroStamp: {
     position: 'absolute', left: spacing.md, bottom: spacing.md,
     backgroundColor: colors.overlay, borderRadius: radius.sm,
     paddingHorizontal: 10, paddingVertical: 4,
   },
   heroStampText: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  heroCounter: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    minWidth: 58,
+    borderRadius: radius.round,
+    backgroundColor: 'rgba(17,17,17,0.42)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  heroCounterText: { color: colors.white, fontSize: 13, fontWeight: '700' },
+  heroDots: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: spacing.md,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  heroDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  heroDotActive: {
+    width: 22,
+    backgroundColor: colors.card,
+  },
   basicCard: {
     minHeight: BASIC_HEIGHT, padding: spacing.lg,
     backgroundColor: colors.surface, borderTopLeftRadius: 24,
-    borderTopRightRadius: 24, marginTop: -14,
+    borderTopRightRadius: 24, marginTop: -24,
     borderWidth: 1, borderColor: colors.border,
   },
-  basicName: { color: colors.textPrimary, fontSize: 24, fontWeight: '800' },
-  basicAddressRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  basicAddress: { color: colors.textSecondary, fontSize: 13, flex: 1 },
+  kicker: { color: colors.primary, fontSize: typography.micro, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
   basicBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: spacing.md },
   section: {
     marginTop: spacing.md, marginHorizontal: spacing.md,
-    borderRadius: radius.lg, padding: spacing.md,
+    borderRadius: radius.lg, padding: spacing.lg,
     backgroundColor: colors.surface, borderWidth: 1,
     borderColor: colors.border, ...shadow,
   },
-  sectionTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '800' },
+  sectionTitle: { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '800', letterSpacing: -0.4 },
   statusGrid: { flexDirection: 'row', gap: 8, marginTop: spacing.sm },
   statusCard: {
     flex: 1, borderRadius: radius.md, padding: spacing.sm,
     backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border,
   },
   statusTitle: { color: colors.textSecondary, fontSize: 12, marginBottom: 8 },
-  description: { color: colors.textSecondary, fontSize: 14, lineHeight: 22, marginTop: spacing.sm },
+  description: { color: colors.textSecondary, fontSize: typography.body, lineHeight: 26, marginTop: spacing.sm },
   groupShareButton: {
     marginTop: spacing.md,
     minHeight: 42,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  groupShareText: { color: colors.white, fontSize: 14, fontWeight: '700' },
+  groupShareText: { color: colors.textDark, fontSize: 14, fontWeight: '800' },
   voteButton: { marginHorizontal: spacing.md, marginTop: spacing.md },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   countLabel: { color: colors.accent, fontSize: 12, fontWeight: '700' },
@@ -666,9 +791,10 @@ const styles = StyleSheet.create({
   tapHint: { color: colors.accent, marginTop: 6, fontSize: 12, fontWeight: '700' },
   flaggedText: { color: colors.warning, marginTop: 6, fontSize: 12 },
   smallBtn: { minHeight: 28, paddingHorizontal: 10, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  approveBtn: { backgroundColor: colors.success },
-  rejectBtn: { backgroundColor: colors.danger },
+  approveBtn: { backgroundColor: colors.card },
+  rejectBtn: { backgroundColor: colors.primary },
   smallBtnText: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  approveBtnText: { color: colors.textDark },
   fullscreenWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' },
   reviewWrap: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)', justifyContent: 'center' },
   reviewImage: { width, height: height * 0.78 },

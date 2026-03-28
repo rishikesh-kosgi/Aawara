@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert, RefreshControl,
@@ -6,8 +6,12 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { spotsAPI } from '../api';
 import { useAuth } from '../utils/AuthContext';
+import { shadow } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function PendingSpotsScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { isLoggedIn, markPendingSpotsSeen, refreshPendingSpots } = useAuth();
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +53,7 @@ export default function PendingSpotsScreen({ navigation }) {
     }
   }
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#e94560" />;
+  if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color={colors.card} />;
 
   return (
     <View style={styles.container}>
@@ -57,7 +61,10 @@ export default function PendingSpotsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pending Spots</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerKicker}>Community Queue</Text>
+          <Text style={styles.headerTitle}>Pending Spots</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -70,7 +77,7 @@ export default function PendingSpotsScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); loadPendingSpots(); }}
-            tintColor="#e94560"
+            tintColor={colors.card}
           />
         }
         renderItem={({ item }) => (
@@ -83,7 +90,7 @@ export default function PendingSpotsScreen({ navigation }) {
             </View>
 
             <Text style={styles.spotName}>{item.name}</Text>
-            <Text style={styles.spotLocation}>📍 {item.city}, {item.country}</Text>
+              <Text style={styles.spotLocation}>{item.city}, {item.country}</Text>
             {item.description ? (
               <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
             ) : null}
@@ -110,7 +117,7 @@ export default function PendingSpotsScreen({ navigation }) {
                 disabled={voting === item.id}
               >
                 {voting === item.id
-                  ? <ActivityIndicator color="#fff" size="small" />
+                  ? <ActivityIndicator color={colors.textDark} size="small" />
                   : <Text style={styles.voteBtnText}>👍 Approve this Spot</Text>
                 }
               </TouchableOpacity>
@@ -119,7 +126,7 @@ export default function PendingSpotsScreen({ navigation }) {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🗺️</Text>
+            <Text style={styles.emptyEmoji}>A</Text>
             <Text style={styles.emptyText}>No pending spots right now.{'\n'}Be the first to submit one!</Text>
             <TouchableOpacity
               style={styles.submitBtn}
@@ -134,50 +141,62 @@ export default function PendingSpotsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f1a' },
+const createStyles = colors => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: 52, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: '#1a1a2e',
+    paddingTop: 52, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: colors.background,
   },
   backBtn: { padding: 8 },
-  backText: { color: '#fff', fontSize: 24 },
-  headerTitle: { flex: 1, fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
-  list: { padding: 16, gap: 12 },
-  card: { backgroundColor: '#1e1e2e', borderRadius: 16, padding: 16 },
+  backText: { color: colors.textPrimary, fontSize: 24 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerKicker: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, textAlign: 'center', marginTop: 4, letterSpacing: -0.7 },
+  list: { padding: 16, gap: 12, paddingBottom: 120 },
+  card: { backgroundColor: colors.surface, borderRadius: 24, padding: 16, borderWidth: 1, borderColor: colors.border, ...shadow },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   categoryBadge: {
-    backgroundColor: '#e94560', borderRadius: 8,
+    backgroundColor: colors.card, borderRadius: 999,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  categoryText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  votes: { color: '#e94560', fontWeight: '700', fontSize: 14 },
-  spotName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  spotLocation: { fontSize: 13, color: '#aaa', marginBottom: 6 },
-  description: { fontSize: 13, color: '#ccc', lineHeight: 20, marginBottom: 6 },
-  address: { fontSize: 12, color: '#888', marginBottom: 6 },
-  submittedBy: { fontSize: 12, color: '#666', marginBottom: 12 },
+  categoryText: { color: colors.textDark, fontSize: 11, fontWeight: '800' },
+  votes: { color: colors.card, fontWeight: '700', fontSize: 14 },
+  spotName: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 4, letterSpacing: -0.5 },
+  spotLocation: { fontSize: 13, color: colors.textSecondary, marginBottom: 6 },
+  description: { fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginBottom: 6 },
+  address: { fontSize: 12, color: colors.textMuted, marginBottom: 6 },
+  submittedBy: { fontSize: 12, color: colors.textMuted, marginBottom: 12 },
   progressBar: {
-    height: 6, backgroundColor: '#333', borderRadius: 3, marginBottom: 12, overflow: 'hidden',
+    height: 6, backgroundColor: colors.border, borderRadius: 3, marginBottom: 12, overflow: 'hidden',
   },
-  progressFill: { height: '100%', backgroundColor: '#e94560', borderRadius: 3 },
+  progressFill: { height: '100%', backgroundColor: colors.card, borderRadius: 3 },
   voteBtn: {
-    backgroundColor: '#e94560', borderRadius: 12,
+    backgroundColor: colors.card, borderRadius: 16,
     paddingVertical: 12, alignItems: 'center',
   },
   voteBtnDisabled: { opacity: 0.6 },
-  voteBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  voteBtnText: { color: colors.textDark, fontWeight: '800', fontSize: 15 },
   votedBtn: {
-    backgroundColor: '#1a3a1a', borderRadius: 12,
-    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#27ae60',
+    backgroundColor: 'rgba(127,176,105,0.12)', borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.success,
   },
-  votedText: { color: '#27ae60', fontWeight: '600', fontSize: 14 },
+  votedText: { color: colors.success, fontWeight: '700', fontSize: 14 },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyEmoji: { fontSize: 52 },
-  emptyText: { color: '#666', fontSize: 15, textAlign: 'center', lineHeight: 24 },
+  emptyEmoji: {
+    fontSize: 34,
+    color: colors.textDark,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+  },
+  emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 24 },
   submitBtn: {
-    backgroundColor: '#e94560', borderRadius: 12,
+    backgroundColor: colors.card, borderRadius: 16,
     paddingHorizontal: 28, paddingVertical: 12, marginTop: 8,
   },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  submitBtnText: { color: colors.textDark, fontWeight: '800', fontSize: 15 },
 });

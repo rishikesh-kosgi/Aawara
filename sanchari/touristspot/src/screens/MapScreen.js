@@ -9,16 +9,17 @@ import {
 import { WebView } from 'react-native-webview';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { spotsAPI } from '../api';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const CATEGORY_COLORS = {
-  Landmark: '#E11D48',
-  Historical: '#F59E0B',
-  Nature: '#10B981',
-  Beach: '#0EA5E9',
-  Temple: '#7C3AED',
-  Trekking: '#D97706',
-  General: '#64748B',
+  Landmark: '#C86F4C',
+  Historical: '#D9A45B',
+  Nature: '#7FB069',
+  Beach: '#8BAFC9',
+  Temple: '#9D7A5B',
+  Trekking: '#BC7E46',
+  General: '#A69788',
 };
 
 const CATEGORY_ORDER = ['All', 'Landmark', 'Historical', 'Nature', 'Beach', 'Temple', 'Trekking', 'General'];
@@ -47,7 +48,7 @@ function normalizeSpot(spot) {
   return { ...spot, latitude, longitude };
 }
 
-function buildMapHtml(spots, selectedCountry) {
+function buildMapHtml(spots, selectedCountry, themeColors) {
   const defaultView = DEFAULT_VIEWS[selectedCountry] || DEFAULT_VIEWS.ALL_COUNTRIES;
   const payload = spots.map(spot => ({
     id: spot.id,
@@ -58,7 +59,7 @@ function buildMapHtml(spots, selectedCountry) {
     latitude: spot.latitude,
     longitude: spot.longitude,
     isVisited: Boolean(spot.is_visited),
-    color: spot.is_visited ? colors.success : (CATEGORY_COLORS[spot.category] || colors.primary),
+    color: spot.is_visited ? themeColors.success : (CATEGORY_COLORS[spot.category] || themeColors.primary),
   }));
 
   return `
@@ -82,13 +83,13 @@ function buildMapHtml(spots, selectedCountry) {
         padding: 0;
         height: 100%;
         width: 100%;
-        background: #dbeafe;
+        background: #ead9c1;
       }
       body {
         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       }
       .leaflet-container {
-        background: #dbeafe;
+        background: #ead9c1;
       }
       #status {
         position: fixed;
@@ -98,7 +99,7 @@ function buildMapHtml(spots, selectedCountry) {
         z-index: 999;
         padding: 12px 14px;
         border-radius: 14px;
-        background: rgba(15, 23, 42, 0.86);
+        background: rgba(30, 24, 20, 0.9);
         color: white;
         font-size: 13px;
         line-height: 1.4;
@@ -151,7 +152,7 @@ function buildMapHtml(spots, selectedCountry) {
             '<strong>' + spot.name + '</strong><br />' +
             spot.city + ', ' + spot.country + '<br />' +
             spot.category + (spot.isVisited ? ' • Visited' : '') +
-            '<br /><button style="margin-top:8px;padding:6px 10px;border:none;border-radius:8px;background:#0f766e;color:#fff;" onclick="window.__openSpot(' + spot.id + ', ' + JSON.stringify(spot.name) + ')">Open Spot</button>' +
+            '<br /><button style="margin-top:8px;padding:7px 12px;border:none;border-radius:999px;background:#c86f4c;color:#fff;font-weight:700;" onclick="window.__openSpot(' + spot.id + ', ' + JSON.stringify(spot.name) + ')">Open Spot</button>' +
           '</div>'
         );
 
@@ -219,6 +220,8 @@ function buildMapHtml(spots, selectedCountry) {
 }
 
 export default function MapScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -288,7 +291,7 @@ export default function MapScreen({ navigation }) {
   }, [selectedCategory, selectedCountry, spots, viewMode]);
 
   const visitedCount = useMemo(() => spots.filter(spot => spot.is_visited).length, [spots]);
-  const mapHtml = useMemo(() => buildMapHtml(filteredSpots, selectedCountry), [filteredSpots, selectedCountry]);
+  const mapHtml = useMemo(() => buildMapHtml(filteredSpots, selectedCountry, colors), [colors, filteredSpots, selectedCountry]);
   const activeFilterLabel = selectedCategory === 'All' ? 'Filter' : selectedCategory;
 
   function handleMapMessage(event) {
@@ -312,7 +315,7 @@ export default function MapScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading world map...</Text>
+        <Text style={styles.loadingText}>Loading your travel atlas...</Text>
       </View>
     );
   }
@@ -356,7 +359,7 @@ export default function MapScreen({ navigation }) {
           <MaterialCommunityIcons
             name="tune-variant"
             size={16}
-            color={showFilters || selectedCategory !== 'All' ? colors.white : colors.textPrimary}
+            color={showFilters || selectedCategory !== 'All' ? colors.textDark : colors.textPrimary}
           />
           <Text style={[styles.filterTriggerText, (showFilters || selectedCategory !== 'All') && styles.filterTriggerTextActive]}>
             {activeFilterLabel}
@@ -434,7 +437,7 @@ export default function MapScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   loadingText: { color: colors.textSecondary, marginTop: 12, fontSize: 15 },
@@ -445,15 +448,13 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
-  headerSub: { color: colors.primary, fontWeight: '700', fontSize: 14, marginTop: 2 },
+  headerTitle: { fontSize: 34, fontWeight: '800', color: colors.textPrimary, letterSpacing: -1 },
+  headerSub: { color: colors.textSecondary, fontWeight: '600', fontSize: 14, marginTop: 6 },
   toolbarRow: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
@@ -464,15 +465,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.round,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toolbarChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  toolbarChipActive: { backgroundColor: colors.card, borderColor: 'transparent' },
   toolbarChipText: { color: colors.textSecondary, fontWeight: '800', fontSize: 12 },
-  toolbarChipTextActive: { color: colors.white },
+  toolbarChipTextActive: { color: colors.textDark },
   filterTrigger: {
     marginLeft: 'auto',
     flexDirection: 'row',
@@ -481,16 +482,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.round,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   filterTriggerActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
+    backgroundColor: colors.card,
+    borderColor: 'transparent',
   },
   filterTriggerText: { color: colors.textPrimary, fontWeight: '800', fontSize: 12 },
-  filterTriggerTextActive: { color: colors.white },
+  filterTriggerTextActive: { color: colors.textDark },
   filterPanel: {
     backgroundColor: colors.surface,
     marginHorizontal: spacing.lg,
@@ -522,9 +523,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  countryChipActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
+  countryChipActive: { backgroundColor: colors.card, borderColor: 'transparent' },
   countryChipText: { color: colors.textSecondary, fontWeight: '800', fontSize: 12 },
-  countryChipTextActive: { color: colors.background },
+  countryChipTextActive: { color: colors.textDark },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -536,13 +537,22 @@ const styles = StyleSheet.create({
   filterChipActive: { borderColor: 'transparent' },
   filterText: { color: colors.textSecondary, fontWeight: '700', fontSize: 12 },
   filterTextActive: { color: colors.white },
-  mapWrap: { flex: 1, backgroundColor: '#dbeafe' },
-  map: { flex: 1, backgroundColor: '#dbeafe' },
+  mapWrap: {
+    flex: 1,
+    backgroundColor: '#ead9c1',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  map: { flex: 1, backgroundColor: '#ead9c1' },
   webLoadingOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#ead9c1',
     gap: 8,
   },
   webLoadingText: { color: colors.textSecondary, fontSize: 13 },

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { colors, spacing } from '../../theme';
+import { spacing, typography } from '../../theme';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 export default function AppHeader({
   title,
@@ -11,6 +12,9 @@ export default function AppHeader({
   onRightPress,
   rightLabel,
 }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <View style={styles.leftWrap}>
@@ -34,14 +38,12 @@ export default function AppHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: {
     paddingTop: 48,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
-    backgroundColor: colors.backgroundAlt,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -53,25 +55,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceMuted,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 22,
+    fontSize: typography.hero,
     fontWeight: '800',
+    letterSpacing: -0.8,
   },
   subtitle: {
     color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: typography.label,
+    marginTop: 4,
   },
   rightLabel: {
-    color: colors.primary,
+    color: colors.accent,
     fontSize: 14,
     fontWeight: '700',
   },

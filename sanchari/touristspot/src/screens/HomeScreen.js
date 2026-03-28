@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from 'react-native-geolocation-service';
 import { spotsAPI, favoritesAPI, BASE_URL } from '../api';
 import { useAuth } from '../utils/AuthContext';
+import { radius, shadow, typography } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const { width, height } = Dimensions.get('window');
 const HOME_SPOTS_CACHE_KEY = 'home_spots_cache_v2';
@@ -70,6 +72,8 @@ function getSpotImageUrl(imageUrl) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { isLoggedIn, user } = useAuth();
   const [spots, setSpots] = useState([]);
   const [catalogSpots, setCatalogSpots] = useState([]);
@@ -301,6 +305,7 @@ export default function HomeScreen({ navigation }) {
 
   function renderTrendingItem({ item, index }) {
     const emoji = getCategoryEmoji(item.category);
+    const imageUrl = getSpotImageUrl(item.image_url);
 
     return (
       <TouchableOpacity
@@ -308,19 +313,28 @@ export default function HomeScreen({ navigation }) {
         activeOpacity={0.92}
         onPress={() => navigation.navigate('SpotDetail', { spotId: item.id, spotName: item.name })}
       >
-        <Text style={styles.trendingBannerEmoji}>{emoji}</Text>
-        <View style={styles.trendingBadge}>
-          <Text style={styles.trendingBadgeText}>🔥 TRENDING #{index + 1}</Text>
-        </View>
-        <Text style={styles.trendingTitle} numberOfLines={1}>{item.name}</Text>
-        <View style={styles.trendingSub}>
-          <Text style={styles.trendingLocation}>{item.city}, {item.country}</Text>
-          <View style={styles.trendingViews}>
-            <Text style={styles.trendingViewsText}>👁️ {item.view_count || 0} views</Text>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.trendingImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.trendingImageFallback}>
+            <Text style={styles.trendingBannerEmoji}>{emoji}</Text>
           </View>
+        )}
+        <View style={styles.trendingOverlay} />
+        <View style={styles.trendingBadge}>
+          <Text style={styles.trendingBadgeText}>Trending #{index + 1}</Text>
         </View>
-        <View style={styles.exploreBtn}>
-          <Text style={styles.exploreBtnText}>Explore now →</Text>
+        <View style={styles.trendingContent}>
+          <Text style={styles.trendingTitle} numberOfLines={2}>{item.name}</Text>
+          <View style={styles.trendingSub}>
+            <Text style={styles.trendingLocation}>{item.city}, {item.country}</Text>
+            <View style={styles.trendingViews}>
+              <Text style={styles.trendingViewsText}>{item.view_count || 0} views</Text>
+            </View>
+          </View>
+          <View style={styles.exploreBtn}>
+            <Text style={styles.exploreBtnText}>Open spot</Text>
+          </View>
         </View>
         <View style={styles.dots}>
           {Array.from({ length: Math.min(trending.length, 5) }).map((_, i) => (
@@ -358,11 +372,11 @@ export default function HomeScreen({ navigation }) {
         </View>
         <View style={styles.spotInfo}>
           <Text style={styles.spotName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.spotLoc} numberOfLines={1}>📍 {item.city}, {item.country} · {item.category}</Text>
+          <Text style={styles.spotLoc} numberOfLines={1}>{item.city}, {item.country}</Text>
           <View style={styles.spotMeta}>
-            <Text style={styles.spotPhotos}>📸 {item.photo_count} photos</Text>
+            <Text style={styles.spotPhotos}>{item.category}</Text>
             <View style={styles.gpsTag}>
-              <Text style={styles.gpsTagText}>⚡ GPS Verified</Text>
+              <Text style={styles.gpsTagText}>{item.photo_count} photos</Text>
             </View>
           </View>
         </View>
@@ -384,16 +398,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0d0d1a" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       <View style={styles.header} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
         <View style={styles.headerTop}>
           <View>
-            <View style={styles.locationRow}>
-              <Text style={styles.locationPin}>📍</Text>
-              <Text style={styles.locationCity}>My Location</Text>
-              <Text style={styles.locationArrow}>▼</Text>
-            </View>
+            <Text style={styles.brandKicker}>Aawara</Text>
+            <Text style={styles.locationCity}>Plan your trip</Text>
             <Text style={styles.locationSub}>{cityName || 'Fetching location...'}</Text>
           </View>
           <View style={styles.headerIcons}>
@@ -411,8 +422,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder='Search "spots, beaches, temples..."'
-            placeholderTextColor="#666"
+            placeholder='Search spots, beaches, temples...'
+            placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={handleSearchChange}
             onFocus={() => search.length > 1 && setShowSuggestions(true)}
@@ -470,7 +481,7 @@ export default function HomeScreen({ navigation }) {
               loadTrending();
               loadPendingCount();
             }}
-            tintColor="#e94560"
+            tintColor={colors.card}
           />
         }
         onEndReached={() => loadSpots(page + 1)}
@@ -523,7 +534,7 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             )}
 
-            <Text style={styles.sectionTitle}>CATEGORIES</Text>
+            <Text style={styles.sectionTitle}>Categories</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesRow}>
               {CATEGORIES.map(cat => (
                 <TouchableOpacity
@@ -554,18 +565,18 @@ export default function HomeScreen({ navigation }) {
               ))}
             </ScrollView>
 
-            <Text style={styles.sectionTitle}>RECOMMENDED FOR YOU</Text>
+            <Text style={styles.sectionTitle}>Recommended For You</Text>
           </>
         )}
         ListEmptyComponent={
           !loading && (
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🔭</Text>
+              <Text style={styles.emptyEmoji}>A</Text>
               <Text style={styles.emptyText}>No spots found</Text>
             </View>
           )
         }
-        ListFooterComponent={loading ? <ActivityIndicator color="#e94560" style={styles.footerLoader} /> : null}
+        ListFooterComponent={loading ? <ActivityIndicator color={colors.card} style={styles.footerLoader} /> : null}
       />
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('SubmitSpot')}>
@@ -575,135 +586,161 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0f' },
-  header: { backgroundColor: '#0d0d1a', paddingTop: 48, paddingHorizontal: 20, paddingBottom: 14 },
+const createStyles = colors => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { backgroundColor: colors.background, paddingTop: 48, paddingHorizontal: 20, paddingBottom: 14 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  locationPin: { fontSize: 14 },
-  locationCity: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  locationArrow: { fontSize: 10, color: '#e94560', marginLeft: 2 },
-  locationSub: { fontSize: 12, color: '#e94560', marginTop: 3, fontWeight: '600' },
+  brandKicker: { color: colors.primary, fontSize: typography.micro, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2 },
+  locationCity: { fontSize: typography.display, fontWeight: '800', color: colors.textPrimary, letterSpacing: -1.2, marginTop: 4 },
+  locationSub: { fontSize: typography.label, color: colors.textSecondary, marginTop: 6, fontWeight: '600' },
   headerIcons: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   iconBtn: {
-    width: 38, height: 38, backgroundColor: '#1e1e2e',
-    borderRadius: 19, alignItems: 'center', justifyContent: 'center', position: 'relative',
+    width: 42, height: 42, backgroundColor: colors.surface,
+    borderRadius: 21, alignItems: 'center', justifyContent: 'center', position: 'relative',
+    borderWidth: 1, borderColor: colors.border,
   },
   iconBtnText: { fontSize: 16 },
   notifDot: {
     position: 'absolute', top: 4, right: 4,
-    width: 8, height: 8, backgroundColor: '#e94560',
-    borderRadius: 4, borderWidth: 2, borderColor: '#0d0d1a',
+    width: 8, height: 8, backgroundColor: colors.primary,
+    borderRadius: 4, borderWidth: 2, borderColor: colors.background,
   },
   avatar: {
-    width: 38, height: 38, backgroundColor: '#e94560',
-    borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+    width: 42, height: 42, backgroundColor: colors.card,
+    borderRadius: 21, alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  avatarText: { color: colors.textDark, fontWeight: '800', fontSize: 15 },
   searchBar: {
-    backgroundColor: '#1a1a2e', borderRadius: 14, padding: 12,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: 12,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    borderWidth: 1, borderColor: colors.border,
   },
   searchIcon: { fontSize: 15 },
-  searchInput: { flex: 1, color: '#fff', fontSize: 14 },
-  clearBtn: { color: '#888', fontSize: 16 },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 14 },
+  clearBtn: { color: colors.textMuted, fontSize: 16 },
   suggestionsContainer: {
     position: 'absolute', left: 16, right: 16,
-    backgroundColor: '#1a1a2e', borderRadius: 14,
+    backgroundColor: colors.surface, borderRadius: radius.lg,
     zIndex: 999, elevation: 20,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    borderWidth: 1, borderColor: colors.border,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10,
   },
   suggestionItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 14,
   },
-  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: '#2a2a3e' },
+  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   suggestionEmoji: { fontSize: 16 },
-  suggestionName: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  suggestionCity: { fontSize: 11, color: '#888', marginTop: 2 },
+  suggestionName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  suggestionCity: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   trendingSection: { paddingHorizontal: 14, paddingTop: 14 },
   trendingBanner: {
-    backgroundColor: '#0f1f3d', borderRadius: 22, padding: 20,
-    minHeight: 160, position: 'relative', overflow: 'hidden',
-    borderWidth: 1, borderColor: '#e9456022', marginRight: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 28,
+    minHeight: 270,
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 0,
+    ...shadow,
+  },
+  trendingImage: { ...StyleSheet.absoluteFillObject },
+  trendingImageFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trendingBannerEmoji: {
-    position: 'absolute', right: -10, top: -10,
-    fontSize: 110, opacity: 0.12,
+    fontSize: 100, opacity: 0.16,
+  },
+  trendingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7,8,9,0.28)',
   },
   trendingBadge: {
-    backgroundColor: '#e94560', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 4,
-    alignSelf: 'flex-start', marginBottom: 10,
+    position: 'absolute',
+    top: 18,
+    left: 18,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  trendingBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  trendingTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 6 },
-  trendingSub: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  trendingLocation: { fontSize: 12, color: '#888' },
+  trendingBadgeText: { color: colors.white, fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  trendingContent: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 18,
+  },
+  trendingTitle: { fontSize: typography.title, fontWeight: '500', color: colors.white, marginBottom: 8, letterSpacing: -1.1, fontStyle: 'italic' },
+  trendingSub: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  trendingLocation: { fontSize: 13, color: colors.white },
   trendingViews: {
-    backgroundColor: 'rgba(233,69,96,0.15)', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  trendingViewsText: { fontSize: 11, color: '#e94560', fontWeight: '600' },
+  trendingViewsText: { fontSize: 11, color: colors.white, fontWeight: '700' },
   exploreBtn: {
-    backgroundColor: '#e94560', borderRadius: 22,
-    paddingHorizontal: 22, paddingVertical: 9, alignSelf: 'flex-start',
+    backgroundColor: colors.card, borderRadius: 22,
+    paddingHorizontal: 20, paddingVertical: 11, alignSelf: 'flex-start',
   },
-  exploreBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  exploreBtnText: { color: colors.textDark, fontSize: 13, fontWeight: '800' },
   dots: { position: 'absolute', bottom: 14, right: 16, flexDirection: 'row', gap: 5 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#333' },
-  dotActive: { width: 18, borderRadius: 3, backgroundColor: '#e94560' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.46)' },
+  dotActive: { width: 18, borderRadius: 3, backgroundColor: colors.card },
   notifBar: {
-    margin: 14, marginBottom: 0, backgroundColor: '#0f1f14',
+    margin: 14, marginBottom: 0, backgroundColor: colors.surface,
     borderRadius: 16, padding: 12, flexDirection: 'row',
-    alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#27ae6033',
+    alignItems: 'center', gap: 12, borderWidth: 1, borderColor: colors.border,
   },
   notifIcon: {
-    width: 40, height: 40, backgroundColor: '#27ae60',
+    width: 40, height: 40, backgroundColor: colors.cardMuted,
     borderRadius: 12, alignItems: 'center', justifyContent: 'center',
   },
   notifIconText: { fontSize: 18 },
   notifText: { flex: 1 },
-  notifTitle: { fontSize: 13, fontWeight: '700', color: '#2ecc71' },
-  notifSub: { fontSize: 11, color: '#666', marginTop: 2 },
+  notifTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  notifSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   notifBtn: {
-    backgroundColor: '#27ae60', borderRadius: 10,
+    backgroundColor: colors.card, borderRadius: 10,
     paddingHorizontal: 13, paddingVertical: 7,
   },
-  notifBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  notifBtnText: { color: colors.textDark, fontSize: 11, fontWeight: '800' },
   sectionTitle: {
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10,
-    fontSize: 11, fontWeight: '700', color: '#555', letterSpacing: 1.5,
+    fontSize: typography.label, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.8,
   },
   categoriesRow: { paddingHorizontal: 16, gap: 14, paddingBottom: 4 },
   catItem: { alignItems: 'center', gap: 7 },
   catIcon: { width: 62, height: 62, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  catIconActive: { backgroundColor: '#e94560' },
-  catIconInactive: { backgroundColor: '#1a1a2e', borderWidth: 1.5, borderColor: '#2a2a3e' },
+  catIconActive: { backgroundColor: colors.card },
+  catIconInactive: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border },
   catEmoji: { fontSize: 28 },
-  catLabel: { fontSize: 11, color: '#aaa', fontWeight: '600' },
-  catLabelActive: { color: '#e94560' },
+  catLabel: { fontSize: 11, color: colors.textSecondary, fontWeight: '600' },
+  catLabelActive: { color: colors.card },
   filtersRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 4 },
   filterChip: {
-    backgroundColor: '#1a1a2e', borderRadius: 22,
+    backgroundColor: colors.surface, borderRadius: 22,
     paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    borderWidth: 1, borderColor: colors.border,
   },
-  filterChipActive: { backgroundColor: '#e9456018', borderColor: '#e94560' },
-  filterChipText: { fontSize: 12, fontWeight: '600', color: '#ccc' },
-  filterChipTextActive: { color: '#e94560' },
+  filterChipActive: { backgroundColor: colors.card, borderColor: 'transparent' },
+  filterChipText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  filterChipTextActive: { color: colors.textDark },
   listContent: { paddingBottom: 100 },
   spotCard: {
-    backgroundColor: '#1a1a2e', borderRadius: 20,
+    backgroundColor: colors.surface, borderRadius: 24,
     marginHorizontal: 16, marginBottom: 12,
     flexDirection: 'row', overflow: 'hidden',
     minHeight: 110,
-    borderWidth: 1, borderColor: '#2a2a3e',
+    borderWidth: 1, borderColor: colors.border,
+    ...shadow,
   },
   spotImgContainer: {
-    width: 110, height: 110,
+    width: 116, height: 118,
     alignItems: 'center', justifyContent: 'center', position: 'relative',
     flexShrink: 0,
   },
@@ -715,29 +752,40 @@ const styles = StyleSheet.create({
   spotEmoji: { fontSize: 34 },
   spotTag: {
     position: 'absolute', top: 8, left: 8,
-    borderRadius: 7, paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: colors.primary,
   },
-  spotTagText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  spotInfo: { flex: 1, padding: 13, justifyContent: 'center' },
-  spotName: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 3 },
-  spotLoc: { fontSize: 11, color: '#777', marginBottom: 8 },
-  spotMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  spotPhotos: { fontSize: 11, color: '#555' },
+  spotTagText: { color: '#fff', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  spotInfo: { flex: 1, padding: 15, justifyContent: 'center' },
+  spotName: { fontSize: 22, fontWeight: '500', color: colors.textPrimary, marginBottom: 5, letterSpacing: -1, fontStyle: 'italic' },
+  spotLoc: { fontSize: 12, color: colors.textSecondary, marginBottom: 10 },
+  spotMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  spotPhotos: { fontSize: 11, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
   gpsTag: {
-    backgroundColor: '#e9456015', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 2,
+    backgroundColor: colors.backgroundAlt, borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  gpsTagText: { fontSize: 11, color: '#e94560', fontWeight: '600' },
+  gpsTagText: { fontSize: 11, color: colors.textSecondary, fontWeight: '700' },
   favBtn: { padding: 12, justifyContent: 'center' },
   favEmoji: { fontSize: 18 },
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 52 },
-  emptyText: { color: '#666', fontSize: 16, marginTop: 12 },
+  emptyEmoji: {
+    fontSize: 34,
+    color: colors.textDark,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+  },
+  emptyText: { color: colors.textSecondary, fontSize: 16, marginTop: 12 },
   footerLoader: { padding: 20 },
   fab: {
-    position: 'absolute', bottom: 80, right: 20,
-    backgroundColor: '#e94560', borderRadius: 25,
+    position: 'absolute', bottom: 100, right: 20,
+    backgroundColor: colors.card, borderRadius: 25,
     paddingHorizontal: 20, paddingVertical: 12, elevation: 8,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  fabText: { color: colors.textDark, fontWeight: '800', fontSize: 14 },
 });

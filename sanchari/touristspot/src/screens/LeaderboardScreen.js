@@ -1,10 +1,11 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { authAPI } from '../api';
 import AppHeader from '../components/ui/AppHeader';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 function getMedal(index) {
   if (index === 0) return '🥇';
@@ -14,6 +15,8 @@ function getMedal(index) {
 }
 
 export default function LeaderboardScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [users, setUsers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,8 +52,9 @@ export default function LeaderboardScreen() {
         }
         ListHeaderComponent={
           <View style={styles.heroCard}>
-            <MaterialCommunityIcons name="trophy-award" size={34} color="#facc15" />
-            <Text style={styles.heroTitle}>Travel legends of the app</Text>
+            <Text style={styles.kicker}>Leaderboard</Text>
+            <MaterialCommunityIcons name="trophy-award" size={34} color={colors.card} />
+            <Text style={styles.heroTitle}>Travel legends of Aawara</Text>
             <Text style={styles.heroSub}>
               Points come from unique spots visited plus unique spots where a user uploaded a photo.
             </Text>
@@ -97,7 +101,7 @@ export default function LeaderboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 120 },
   heroCard: {
@@ -109,7 +113,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadow,
   },
-  heroTitle: { color: colors.textPrimary, fontSize: 22, fontWeight: '800', marginTop: 10 },
+  kicker: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  heroTitle: { color: colors.textPrimary, fontSize: 28, fontWeight: '800', marginTop: 10, letterSpacing: -0.6 },
   heroSub: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 8 },
   row: {
     borderRadius: radius.lg,
@@ -134,14 +139,14 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
   },
-  avatarText: { color: colors.white, fontSize: 22, fontWeight: '800' },
+  avatarText: { color: colors.textDark, fontSize: 22, fontWeight: '800' },
   userBlock: { flex: 1 },
   name: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
   meta: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
   pointsWrap: { minWidth: 54, alignItems: 'center' },
-  points: { color: colors.accent, fontSize: 22, fontWeight: '800' },
+  points: { color: colors.card, fontSize: 22, fontWeight: '800' },
   pointsLabel: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 72, paddingHorizontal: 24 },
   emptyTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginTop: 12 },

@@ -243,18 +243,21 @@ async function applySchema(executor = db) {
 
 async function ensureSpotKeys(executor = db) {
   const spots = await executor.prepare(`
-    SELECT id, name, city, country
+    SELECT id, name, city, country, spot_key
     FROM spots
-    WHERE spot_key IS NULL OR spot_key = ''
   `).all();
 
   for (const spot of spots) {
+    const nextKey = makeSpotKey(spot);
+    if (spot.spot_key === nextKey) continue;
+
     await executor.prepare('UPDATE spots SET spot_key = ? WHERE id = ?')
-      .run(makeSpotKey(spot), spot.id);
+      .run(nextKey, spot.id);
   }
 }
 
 async function syncSeedSpots(executor = db) {
+  await executor.exec('DROP INDEX IF EXISTS idx_spots_spot_key_unique');
   await ensureSpotKeys(executor);
 
   const existing = await executor.prepare(`

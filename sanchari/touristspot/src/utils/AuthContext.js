@@ -17,8 +17,17 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     requestLocationPermission();
     (async () => {
-      await initializeBaseURL();
-      await loadUser();
+      try {
+        await initializeBaseURL();
+        await loadUser();
+      } catch (error) {
+        console.warn('Base URL initialization failed:', error);
+        Alert.alert(
+          'Server configuration needed',
+          'The app could not find a reachable backend. Update the production API URL before using the release build.'
+        );
+        setLoading(false);
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

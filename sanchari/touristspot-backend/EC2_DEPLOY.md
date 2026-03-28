@@ -1,91 +1,109 @@
 ## EC2 Deploy
 
+This backend is now set up for a production-style EC2 deployment with:
+
+- Node.js 22
+- PM2 process management
+- Nginx reverse proxy
+- PostgreSQL via `DATABASE_URL`
+- easy future migration to `AWS RDS PostgreSQL`
+
 ### 1. Launch EC2
 
-- Ubuntu 24.04 or 22.04
-- Open inbound security-group rules:
-  - `22` from your IP only
-  - `5000` from `0.0.0.0/0` for direct backend testing
+Recommended:
 
-### 2. SSH into the server
+- Ubuntu `24.04` or `22.04`
+- `t4g.small` or `t3.small` to start
+- attach an Elastic IP if possible
+
+Security-group inbound rules:
+
+- `22` from your IP only
+- `80` from `0.0.0.0/0`
+- `443` from `0.0.0.0/0`
+
+### 2. SSH into the instance
 
 ```bash
 ssh -i /path/to/key.pem ubuntu@YOUR_EC2_PUBLIC_IP
 ```
 
-### 3. Install Node.js and build tools
+### 3. Clone the backend repo
 
 ```bash
-sudo apt update
-sudo apt install -y curl build-essential unzip
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v
-npm -v
+sudo mkdir -p /var/www
+sudo chown -R ubuntu:ubuntu /var/www
+cd /var/www
+git clone YOUR_BACKEND_GIT_URL touristspot-backend
+cd /var/www/touristspot-backend
 ```
 
-### 4. Install PM2
+### 4. Run first-time setup
 
 ```bash
-sudo npm install -g pm2
-pm2 -v
+chmod +x devops/setup-ec2.sh devops/deploy-ec2.sh
+DOMAIN=api.yourdomain.com APP_DIR=/var/www/touristspot-backend ./devops/setup-ec2.sh
 ```
 
-### 5. Clone the backend
+This installs:
+
+- Node.js
+- PM2
+- Nginx
+- Certbot
+
+### 5. Create production env
 
 ```bash
-git clone https://github.com/rishikesh-kosgi/touristspot-backend.git
-cd touristspot-backend
-```
-
-### 6. Add environment variables
-
-```bash
-cp .env.example .env
+cd /var/www/touristspot-backend
+cp devops/.env.production.example .env
 nano .env
 ```
 
-Recommended production values:
+Minimum values to change:
 
-- `JWT_SECRET`: long random string
-- `HOST=0.0.0.0`
-- `PORT=5000`
+- `DATABASE_URL`
+- `PGSSL_MODE`
+- `JWT_SECRET`
+- `CORS_ORIGINS`
+- `UPLOADS_BASE_URL`
+- `GOOGLE_WEB_CLIENT_ID`
 
-### 7. Install dependencies
-
-```bash
-npm install
-```
-
-### 8. Start the backend
+### 6. Deploy the app
 
 ```bash
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup
+cd /var/www/touristspot-backend
+APP_DIR=/var/www/touristspot-backend BRANCH=main ./devops/deploy-ec2.sh
 ```
 
-### 9. Verify the backend
+### 7. Point the domain
+
+Create a DNS record:
+
+- `api.yourdomain.com` -> your EC2 public IP
+
+### 8. Enable HTTPS
+
+```bash
+sudo certbot --nginx -d api.yourdomain.com
+```
+
+### 9. Verify
 
 ```bash
 curl http://127.0.0.1:5000/api/health
-curl http://YOUR_EC2_PUBLIC_IP:5000/api/health
+curl https://api.yourdomain.com/api/health
+pm2 status
+sudo nginx -t
 ```
 
-### 10. Point the app to EC2
+### 10. Future move to AWS RDS PostgreSQL
 
-Update your GitHub JSON repo `https://github.com/rishikesh-kosgi/apiurl` so `baseurl.json` contains:
+When users increase, migration is simple:
 
-```json
-{
-  "base_url": "http://YOUR_EC2_PUBLIC_IP:5000"
-}
-```
+1. create `RDS PostgreSQL`
+2. update `DATABASE_URL`
+3. set `PGSSL_MODE=require`
+4. redeploy with `./devops/deploy-ec2.sh`
 
-Restart the app on phones so it refreshes the backend URL.
-
-### Notes
-
-- This backend stores SQLite DB and uploaded images on the EC2 instance itself.
-- If you stop/replace the EC2 instance without copying those files, that data is lost.
-- For long-term production, move DB and images to managed storage.
+Your app server can stay on EC2 while the database moves to RDS.

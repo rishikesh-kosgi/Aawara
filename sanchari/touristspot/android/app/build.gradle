@@ -11,7 +11,12 @@ project.ext.vectoricons = [
 ]
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
+def releaseStoreFile = project.findProperty("RELEASE_STORE_FILE")
+def releaseStorePassword = project.findProperty("RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = project.findProperty("RELEASE_KEY_ALIAS")
+def releaseKeyPassword = project.findProperty("RELEASE_KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
@@ -36,6 +41,14 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     splits {
         abi {
@@ -48,11 +61,14 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
         }
         release {
-            signingConfig signingConfigs.debug
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            shrinkResources enableProguardInReleaseBuilds
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
 }

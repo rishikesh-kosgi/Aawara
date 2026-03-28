@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-$HOME/touristspot-backend}"
-BRANCH="${BRANCH:-master}"
+APP_DIR="${APP_DIR:-/var/www/touristspot-backend}"
+BRANCH="${BRANCH:-main}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:5000/api/health}"
 
 echo "Deploying backend in ${APP_DIR} from branch ${BRANCH}"
@@ -22,11 +22,14 @@ git pull --ff-only origin "${BRANCH}"
 echo "Installing production dependencies"
 npm install --omit=dev
 
+echo "Ensuring uploads directory exists"
+mkdir -p uploads
+
 echo "Starting or reloading PM2 app"
 if pm2 describe touristspot-backend >/dev/null 2>&1; then
-  pm2 reload devops/ecosystem.config.cjs --update-env
+  pm2 reload ecosystem.config.js --update-env
 else
-  pm2 start devops/ecosystem.config.cjs
+  pm2 start ecosystem.config.js
 fi
 
 pm2 save

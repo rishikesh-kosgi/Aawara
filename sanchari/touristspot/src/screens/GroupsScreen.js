@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AppHeader from '../components/ui/AppHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { groupsAPI } from '../api';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing } from '../theme';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function GroupsScreen({ navigation, route }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [groups, setGroups] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -98,7 +101,7 @@ export default function GroupsScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Trip Groups" subtitle="Plan with your friends inside the app" onBack={() => navigation.goBack()} />
+      <AppHeader title="Trip Groups" subtitle="Plan journeys with your circle" onBack={() => navigation.goBack()} />
 
       <FlatList
         data={groups}
@@ -107,7 +110,8 @@ export default function GroupsScreen({ navigation, route }) {
         ListHeaderComponent={(
           <View style={styles.headerStack}>
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Create a planning group</Text>
+              <Text style={styles.kicker}>Create</Text>
+              <Text style={styles.cardTitle}>Start a new travel circle</Text>
               <TextInput
                 style={styles.input}
                 value={groupName}
@@ -119,7 +123,8 @@ export default function GroupsScreen({ navigation, route }) {
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Join with invite code</Text>
+              <Text style={styles.kicker}>Join</Text>
+              <Text style={styles.cardTitle}>Enter an invite code</Text>
               <TextInput
                 style={styles.input}
                 value={inviteCode}
@@ -165,7 +170,7 @@ export default function GroupsScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: 120 },
   headerStack: { gap: spacing.md, marginBottom: spacing.md },
@@ -178,9 +183,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     ...shadow,
   },
-  cardTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+  kicker: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  cardTitle: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: -0.5 },
   input: {
-    minHeight: 48,
+    minHeight: 52,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -188,7 +194,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingHorizontal: spacing.md,
   },
-  sectionTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+  sectionTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   groupCard: {
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
@@ -202,7 +208,7 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   groupInfo: { flex: 1 },
-  groupName: { color: colors.textPrimary, fontSize: 17, fontWeight: '800' },
+  groupName: { color: colors.textPrimary, fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
   groupMeta: { color: colors.textSecondary, fontSize: 12, marginTop: 6 },
   shareLinkBtn: {
     alignSelf: 'flex-start',
@@ -210,15 +216,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: radius.round,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'transparent',
   },
-  shareLinkBtnText: { color: colors.primary, fontWeight: '800', fontSize: 12 },
+  shareLinkBtnText: { color: colors.textDark, fontWeight: '800', fontSize: 12 },
   badge: {
     minWidth: 64,
     borderRadius: radius.round,
-    backgroundColor: 'rgba(39,174,96,0.15)',
+    backgroundColor: 'rgba(127,176,105,0.15)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     alignItems: 'center',

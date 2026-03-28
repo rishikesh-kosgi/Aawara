@@ -1,59 +1,59 @@
-## GitHub Actions Deployment Setup
+## EC2 DevOps Files
 
-This repo includes:
+This folder now contains the exact deployment assets for a production-style EC2 setup:
 
-- `.github/workflows/deploy-backend.yml`
+- `devops/.env.production.example`
+- `devops/nginx-touristspot.conf`
+- `devops/setup-ec2.sh`
 - `devops/deploy-ec2.sh`
-- `devops/ecosystem.config.cjs`
 
-### One-time EC2 setup
+Recommended production layout:
 
-On the EC2 server:
+- Node backend on EC2 behind `pm2`
+- Nginx reverse proxy on ports `80` and `443`
+- PostgreSQL connection via `DATABASE_URL`
+- Easy future move from local/self-hosted Postgres to `AWS RDS PostgreSQL`
+
+### First-time server setup
+
+From the backend repo on the EC2 instance:
 
 ```bash
-sudo apt update
-sudo apt install -y curl build-essential git
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-sudo npm install -g pm2
-
-cd ~
-git clone https://github.com/rishikesh-kosgi/touristspot-backend.git
-cd touristspot-backend
-cp .env.example .env
-nano .env
-npm install
-pm2 start devops/ecosystem.config.cjs
-pm2 save
+chmod +x devops/setup-ec2.sh devops/deploy-ec2.sh
+DOMAIN=api.yourdomain.com APP_DIR=/var/www/touristspot-backend ./devops/setup-ec2.sh
 ```
 
-### Required GitHub repository secrets
+### App configuration
 
-Add these in GitHub:
+Create your production env file on the server:
 
-- `EC2_HOST`
-  - your EC2 public IP or DNS
-- `EC2_USER`
-  - usually `ubuntu`
-- `EC2_APP_DIR`
-  - usually `/home/ubuntu/touristspot-backend`
-- `EC2_SSH_PRIVATE_KEY`
-  - contents of your `.pem` private key
+```bash
+cd /var/www/touristspot-backend
+cp devops/.env.production.example .env
+nano .env
+```
 
-### How deployment works
+### Deploy or redeploy
 
-When you push to `master`, GitHub Actions will:
+```bash
+cd /var/www/touristspot-backend
+APP_DIR=/var/www/touristspot-backend BRANCH=main ./devops/deploy-ec2.sh
+```
 
-1. connect to EC2 over SSH
-2. run `git pull`
-3. run `npm install --omit=dev`
-4. reload PM2
-5. verify `http://127.0.0.1:5000/api/health`
+### HTTPS
 
-### Important notes
+After your domain points to EC2:
 
-- Keep `.env` only on EC2
-- Make sure EC2 security group allows:
-  - `22` from your IP for SSH
-  - `5000` from the internet if you want direct backend access
-- If you later add Nginx, your app can use port `80` or `443` instead of `5000`
+```bash
+sudo certbot --nginx -d api.yourdomain.com
+```
+
+### Security group
+
+Allow:
+
+- `22` from your IP only
+- `80` from the internet
+- `443` from the internet
+
+Do not expose port `5000` publicly once Nginx is in front of the app.

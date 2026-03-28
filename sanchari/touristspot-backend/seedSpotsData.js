@@ -1,5 +1,15 @@
+const { indiaExpandedSpots } = require('./indiaExpandedSpots');
+const { masterListSupplementSpots } = require('./masterListSupplementSpots');
+const { masterListResolvedSpots } = require('./masterListResolvedSpots');
+const { masterListFallbackSpots } = require('./masterListFallbackSpots');
+const crypto = require('crypto');
+
 function spot(name, description, category, city, country, latitude, longitude, address, isRemote = 0) {
   return { name, description, category, city, country, latitude, longitude, address, isRemote };
+}
+
+function tupleSpot([name, description, category, city, country, latitude, longitude, address, isRemote = 0]) {
+  return spot(name, description, category, city, country, latitude, longitude, address, isRemote);
 }
 
 const rawSeedSpots = [
@@ -151,7 +161,38 @@ const rawSeedSpots = [
   spot('Delicate Arch Trail', 'Short but iconic hike to Arches’ most famous formation.', 'Trekking', 'Moab', 'United States', 38.7436, -109.4993, 'Delicate Arch Trail, UT', 1),
   spot('Hidden Lake Overlook', 'Popular Glacier National Park alpine viewpoint hike.', 'Trekking', 'West Glacier', 'United States', 48.6969, -113.7183, 'Logan Pass, Glacier National Park, MT', 1),
   spot('Old Rag Mountain', 'Rock scramble hike in Shenandoah National Park.', 'Trekking', 'Sperryville', 'United States', 38.5659, -78.3058, 'Old Rag Mountain, VA', 1),
+  ...indiaExpandedSpots.map(tupleSpot),
+  ...masterListSupplementSpots.map(tupleSpot),
+  ...masterListResolvedSpots.map(tupleSpot),
+  ...masterListFallbackSpots.map(tupleSpot),
 ];
+
+const NAME_ALIASES = new Map([
+  ['akshardham delhi', 'akshardham temple'],
+  ['amber fort', 'amer fort'],
+  ['brihadeeswarar temple', 'brihadeeswara temple'],
+  ['cellular jail port blair', 'cellular jail'],
+  ['charminar hyderabad', 'charminar'],
+  ['dal lake srinagar', 'dal lake'],
+  ['dudhsagar falls goa', 'dudhsagar falls'],
+  ['golden temple amritsar', 'golden temple'],
+  ['golconda fort hyderabad', 'golconda fort'],
+  ['jagannath temple puri', 'jagannath temple'],
+  ['meenakshi temple madurai', 'meenakshi amman temple'],
+  ['puri jagannath', 'jagannath temple'],
+  ['rameshwaram temple', 'ramanathaswamy temple'],
+  ['vaishno devi temple', 'vaishno devi'],
+  ['virupaksha temple hampi', 'virupaksha temple'],
+]);
+
+const CITY_ALIASES = new Map([
+  ['bangalore', 'bengaluru'],
+  ['east khasi hills', 'shillong'],
+  ['katra', 'reasi'],
+  ['mysore', 'mysuru'],
+  ['shimoga', 'shivamogga'],
+  ['swaraj dweep', 'andaman'],
+]);
 
 function normalizePart(value) {
   return String(value || '')
@@ -164,10 +205,14 @@ function normalizePart(value) {
 
 function makeSpotKey(spotItem) {
   return [
-    normalizePart(spotItem.name),
-    normalizePart(spotItem.city),
+    NAME_ALIASES.get(normalizePart(spotItem.name)) || normalizePart(spotItem.name),
+    CITY_ALIASES.get(normalizePart(spotItem.city)) || normalizePart(spotItem.city),
     normalizePart(spotItem.country),
   ].join('|');
+}
+
+function makeSeedId(spotItem) {
+  return `spot_seed_${crypto.createHash('sha1').update(makeSpotKey(spotItem)).digest('hex').slice(0, 16)}`;
 }
 
 function buildSeedSpots() {
@@ -186,8 +231,8 @@ function buildSeedSpots() {
     }
   }
 
-  return Array.from(seen.values()).map((item, index) => [
-    `spot_seed_${index + 1}`,
+  return Array.from(seen.values()).map(item => [
+    makeSeedId(item),
     item.name,
     item.description,
     item.category,

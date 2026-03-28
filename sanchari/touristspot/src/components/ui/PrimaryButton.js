@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { colors, radius, shadow } from '../../theme';
+import { radius, shadow } from '../../theme';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 export default function PrimaryButton({
   label,
@@ -11,6 +12,9 @@ export default function PrimaryButton({
   textStyle,
   icon,
 }) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Pressable
       style={[styles.button, (disabled || loading) && styles.disabled, style]}
@@ -22,20 +26,22 @@ export default function PrimaryButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   button: {
-    minHeight: 52,
+    minHeight: 56,
     borderRadius: radius.lg,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     ...shadow,
   },
   disabled: {
     opacity: 0.6,
   },
   text: {
-    color: colors.white,
+    color: colors.textDark,
     fontSize: 16,
     fontWeight: '700',
   },

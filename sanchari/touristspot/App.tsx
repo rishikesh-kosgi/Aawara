@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -19,6 +19,7 @@ import GroupPlannerScreen from './src/screens/GroupPlannerScreen';
 import SubmitSpotScreen from './src/screens/SubmitSpotScreen';
 import PendingSpotsScreen from './src/screens/PendingSpotsScreen';
 import LoadingVideoScreen from './src/components/LoadingVideoScreen';
+import { ThemeProvider, useAppTheme } from './src/theme/ThemeProvider';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -35,21 +36,34 @@ function extractInviteCode(url) {
 }
 
 function MainTabs() {
+  const { colors } = useAppTheme();
+  const screenOptions = useMemo(() => ({
+    headerShown: false,
+    tabBarStyle: {
+      position: 'absolute',
+      left: 14,
+      right: 14,
+      bottom: 14,
+      backgroundColor: colors.surface,
+      borderTopColor: 'transparent',
+      paddingBottom: 12,
+      paddingTop: 12,
+      height: 78,
+      borderRadius: 28,
+      elevation: 0,
+    },
+    tabBarItemStyle: {
+      borderRadius: 20,
+      marginHorizontal: 4,
+    },
+    tabBarActiveTintColor: colors.card,
+    tabBarInactiveTintColor: colors.textMuted,
+    tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 2 },
+  }), [colors]);
+
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#0d0d1a',
-          borderTopColor: '#1e1e2e',
-          paddingBottom: 18,
-          paddingTop: 10,
-          height: 84,
-        },
-        tabBarActiveTintColor: '#e94560',
-        tabBarInactiveTintColor: '#555',
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-      }}
+      screenOptions={screenOptions}
     >
       <Tab.Screen
         name="Explore"
@@ -89,6 +103,8 @@ function MainTabs() {
 
 function AppShell() {
   const { isLoggedIn, loading } = useAuth();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [showLoadingVideo, setShowLoadingVideo] = useState(true);
   const [pendingInviteCode, setPendingInviteCode] = useState(null);
   const [navigationReady, setNavigationReady] = useState(false);
@@ -127,7 +143,7 @@ function AppShell() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e94560" />
+        <ActivityIndicator size="large" color={colors.card} />
       </View>
     );
   }
@@ -159,17 +175,19 @@ function AppShell() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = colors => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0d0d1a',
+    backgroundColor: colors.background,
   },
 });
