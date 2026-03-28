@@ -1,0 +1,120 @@
+
+Welcome to React Native v0.84
+Starting dev server on http://localhost:8081
+
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+                Welcome to Metro v0.83.5
+              Fast - Scalable - Integrated
+
+
+ INFO  Dev server ready. Press Ctrl+C to exit.
+ INFO  Interactive mode is not supported in this environment
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 1% (1/1)
+ BUNDLE  ./index.js ▓░░░░░░░░░░░░░░░ 9% (10/127)
+ BUNDLE  ./index.js ▓░░░░░░░░░░░░░░░ 9% (27/160)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓░░░░░░░░░░░░░░░ 11% (76/224)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓░░░░░░░░░░░░░ 19% (104/240)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓░░░░░░░░░░░░ 28% (167/313)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓░░░░░░░░░░░ 35% (296/496)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58% (440/613)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 60% (535/691)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 60% (536/691)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 61% (542/693)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 71% (618/732)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86% (748/802)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 96% (868/902)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (925/927)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  SyntaxError: C:\Users\Kosgi\Desktop\Sanchari\touristspot\src\screens\HomeScreen.js: Nullish coalescing operator(??) requires parens when mixing with logical operators. (228:56)
+
+  226 |           <View style={styles.trendingViews}>
+  227 |             <Text style={styles.trendingViewsText}>
+> 228 |               👁️ {trendingWeekViews ?? spot.view_count || '0'} views this week
+      |                                                         ^
+  229 |             </Text>
+  230 |           </View>
+  231 |         </View>
+ BUNDLE  ./index.js 
+ ERROR  SyntaxError: C:\Users\Kosgi\Desktop\Sanchari\touristspot\src\screens\HomeScreen.js: Nullish coalescing operator(??) requires parens when mixing with logical operators. (228:56)
+
+  226 |           <View style={styles.trendingViews}>
+  227 |             <Text style={styles.trendingViewsText}>
+> 228 |               👁️ {trendingWeekViews ?? spot.view_count || '0'} views this week
+      |                                                         ^
+  229 |             </Text>
+  230 |           </View>
+  231 |         </View>
+ BUNDLE  ./index.js 
+ ERROR  SyntaxError: C:\Users\Kosgi\Desktop\Sanchari\touristspot\src\screens\HomeScreen.js: Nullish coalescing operator(??) requires parens when mixing with logical operators. (228:56)
+
+  226 |           <View style={styles.trendingViews}>
+  227 |             <Text style={styles.trendingViewsText}>
+> 228 |               👁️ {trendingWeekViews ?? spot.view_count || '0'} views this week
+      |                                                         ^
+  229 |             </Text>
+  230 |           </View>
+  231 |         </View>
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  SyntaxError: C:\Users\Kosgi\Desktop\Sanchari\touristspot\src\screens\HomeScreen.js: Nullish coalescing operator(??) requires parens when mixing with logical operators. (228:56)
+
+  226 |           <View style={styles.trendingViews}>
+  227 |             <Text style={styles.trendingViewsText}>
+> 228 |               👁️ {trendingWeekViews ?? spot.view_count || '0'} views this week
+      |                                                         ^
+  229 |             </Text>
+  230 |           </View>
+  231 |         </View>
+ BUNDLE  ./index.js 
+ ERROR  SyntaxError: C:\Users\Kosgi\Desktop\Sanchari\touristspot\src\screens\HomeScreen.js: Nullish coalescing operator(??) requires parens when mixing with logical operators. (228:56)
+
+  226 |           <View style={styles.trendingViews}>
+  227 |             <Text style={styles.trendingViewsText}>
+> 228 |               👁️ {trendingWeekViews ?? spot.view_count || '0'} views this week
+      |                                                         ^
+  229 |             </Text>
+  230 |           </View>
+  231 |         </View>
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ INFO  [1m[7m💡 JavaScript logs have moved![22m They can now be viewed in React Native DevTools. Tip: Type [1mj[22m in the terminal to open.[27m
+ INFO  Launching DevTools...
+
+ INFO  Launching DevTools...
+
+ MAP  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ MAP  ./index.js 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.

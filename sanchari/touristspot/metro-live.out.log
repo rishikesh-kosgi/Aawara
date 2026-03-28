@@ -1,0 +1,115 @@
+
+> TouristSpot@0.0.1 start
+> react-native start
+
+
+Welcome to React Native v0.84
+Starting dev server on http://localhost:8081
+
+
+                        ▒▒▓▓▓▓▒▒
+                     ▒▓▓▓▒▒░░▒▒▓▓▓▒
+                  ▒▓▓▓▓░░░▒▒▒▒░░░▓▓▓▓▒
+                 ▓▓▒▒▒▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▓▓
+                 ▓▓░░░░░▒▓▓▓▓▓▓▒░░░░░▓▓
+                 ▓▓░░▓▓▒░░░▒▒░░░▒▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▒▒▒▒▓▓▓▓▒░░▓▓
+                 ▓▓░░▓▓▓▓▓▓▓▓▓▓▓▓▓▒░░▓▓
+                 ▓▓▒░░▒▒▓▓▓▓▓▓▓▓▒░░░▒▓▓
+                  ▒▓▓▓▒░░░▒▓▓▒░░░▒▓▓▓▒
+                     ▒▓▓▓▒░░░░▒▓▓▓▒
+                        ▒▒▓▓▓▓▒▒
+
+
+                Welcome to Metro v0.83.5
+              Fast - Scalable - Integrated
+
+
+ INFO  Dev server ready. Press Ctrl+C to exit.
+ INFO  Interactive mode is not supported in this environment
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 60% (440/584)
+ BUNDLE  ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99% (838/867)
+ BUNDLE  ./index.js 
+ INFO  [1m[7m💡 JavaScript logs have moved![22m They can now be viewed in React Native DevTools. Tip: Type [1mj[22m in the terminal to open.[27m
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ ERROR  Error: Unable to resolve module ./src/screens/HomeScreen from C:\Users\Kosgi\Desktop\Sanchari\touristspot\App.tsx: 
+
+None of these files exist:
+  * src\screens\HomeScreen(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx)
+  * src\screens\HomeScreen
+   9 | import OTPScreen from './src/screens/OTPScreen';
+  10 | import SetNameScreen from './src/screens/SetNameScreen';
+> 11 | import HomeScreen from './src/screens/HomeScreen';
+     |                         ^
+  12 | import MapScreen from './src/screens/MapScreen';
+  13 | import SpotDetailScreen from './src/screens/SpotDetailScreen';
+  14 | import FavoritesScreen from './src/screens/FavoritesScreen';
+    at ModuleResolver.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ ERROR  Error: Unable to resolve module ./src/screens/SpotDetailScreen from C:\Users\Kosgi\Desktop\Sanchari\touristspot\App.tsx: 
+
+None of these files exist:
+  * src\screens\SpotDetailScreen(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx)
+  * src\screens\SpotDetailScreen
+  11 | import HomeScreen from './src/screens/HomeScreen';
+  12 | import MapScreen from './src/screens/MapScreen';
+> 13 | import SpotDetailScreen from './src/screens/SpotDetailScreen';
+     |                               ^
+  14 | import FavoritesScreen from './src/screens/FavoritesScreen';
+  15 | import ProfileScreen from './src/screens/ProfileScreen';
+  16 | import SubmitSpotScreen from './src/screens/SubmitSpotScreen';
+    at ModuleResolver.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
+ ERROR  Error: Unable to resolve module ./src/screens/HomeScreen from C:\Users\Kosgi\Desktop\Sanchari\touristspot\App.tsx: 
+
+None of these files exist:
+  * src\screens\HomeScreen(.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx)
+  * src\screens\HomeScreen
+   9 | import OTPScreen from './src/screens/OTPScreen';
+  10 | import SetNameScreen from './src/screens/SetNameScreen';
+> 11 | import HomeScreen from './src/screens/HomeScreen';
+     |                         ^
+  12 | import MapScreen from './src/screens/MapScreen';
+  13 | import SpotDetailScreen from './src/screens/SpotDetailScreen';
+  14 | import FavoritesScreen from './src/screens/FavoritesScreen';
+    at ModuleResolver.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:142:15)
+    at DependencyGraph.resolveDependency (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\lib\transformHelpers.js:165:21
+    at resolveDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:43:25)
+    at visit (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:81:30)
+    at async Promise.all (index 0)
+    at async buildSubgraph (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\buildSubgraph.js:105:3)
+    at async Graph._buildDelta (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:163:22)
+    at async Graph.traverseDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\Graph.js:50:19)
+    at async DeltaCalculator._getChangedDependencies (C:\Users\Kosgi\Desktop\Sanchari\touristspot\node_modules\metro\src\DeltaBundler\DeltaCalculator.js:191:42)
+ BUNDLE  ./index.js ░░░░░░░░░░░░░░░░ 0% (0/1)
+ BUNDLE  ./index.js 
+ ERROR  [timeout] connection terminated with Device for app='com.touristspot' on device='A059 - 16 - API 36' after not responding for 60 seconds.
